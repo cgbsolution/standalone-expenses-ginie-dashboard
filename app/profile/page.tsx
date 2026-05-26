@@ -558,7 +558,7 @@ function passwordStrength(pw: string): { score: 0 | 1 | 2 | 3 | 4; label: string
   if (/\d/.test(pw)) score += 1;
   if (/[^A-Za-z0-9]/.test(pw)) score += 1;
   const labels = ["", "Weak", "Fair", "Good", "Strong"] as const;
-  return { score: score as 0 | 1 | 2 | 3 | 4, label: labels[score] };
+  return { score: score as 0 | 1 | 2 | 3 | 4, label: labels[score] ?? "" };
 }
 
 function PasswordStrengthBar({ strength }: { strength: { score: 0 | 1 | 2 | 3 | 4; label: string } }) {

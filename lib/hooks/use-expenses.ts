@@ -75,8 +75,23 @@ export function useUpdateExpenseStatus() {
       ctx?.snapshots.forEach(([key, prev]) => qc.setQueryData(key, prev));
       toast.error(apiErrorMessage(err, "Could not update expense"));
     },
-    onSuccess: () => {
-      toast.success("Expense updated");
+    // The backend implements 2-level approval (manager → finance). When a
+    // manager "Approves", the server may keep ApprovalStatus = "Pending" and
+    // forward to the finance manager. Use the actual returned status to pick
+    // the right toast — otherwise the approver sees "Approved" but the item
+    // re-appears in someone else's queue with no explanation.
+    onSuccess: (data, input) => {
+      if (input.ApprovalStatus === "Approved" && data?.ApprovalStatus === "Pending") {
+        toast.success("Forwarded to Finance Manager", {
+          description: "Your approval is recorded. Awaiting Finance review.",
+        });
+      } else if (input.ApprovalStatus === "Approved") {
+        toast.success("Expense approved");
+      } else if (input.ApprovalStatus === "Rejected") {
+        toast.success("Expense rejected");
+      } else {
+        toast.success("Expense updated");
+      }
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
