@@ -30,10 +30,24 @@ const schema = z.object({
   customSubdomain: z
     .string()
     .optional()
-    .refine((v) => !v || /^[a-z0-9-]+$/.test(v), "Lowercase letters, digits and dashes only"),
+    .refine(
+      (v) => !v || /^[a-z0-9.-]+$/.test(v),
+      "Lowercase letters, digits, dots and dashes only",
+    ),
   plan: z.enum(["starter", "growth", "scale", "enterprise"]),
 });
 type FormValues = z.infer<typeof schema>;
+
+/** Normalise free-form input into a valid domain/subdomain: lowercase, keeping
+ *  dots and dashes, with any other disallowed run (spaces, etc.) collapsed to a
+ *  dash. Allows values like "cgbindia.com". */
+function toSubdomain(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[.-]+/, "");
+}
 
 const PLANS: { value: PlanTier; label: string; price: string }[] = [
   { value: "starter", label: "Starter", price: "Free" },
@@ -108,6 +122,11 @@ export function CreateTenantSheet() {
               id="customSubdomain"
               placeholder="acme"
               {...form.register("customSubdomain")}
+              onChange={(e) =>
+                form.setValue("customSubdomain", toSubdomain(e.target.value), {
+                  shouldValidate: true,
+                })
+              }
             />
           </Field>
 
