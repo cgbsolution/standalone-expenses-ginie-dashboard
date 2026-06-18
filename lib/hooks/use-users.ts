@@ -2,7 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { listUsers, updateUser, type ListUsersParams, type UpdateUserInput } from "@/lib/api/users";
+import {
+  inviteUser,
+  listUsers,
+  updateUser,
+  type InviteUserInput,
+  type ListUsersParams,
+  type UpdateUserInput,
+} from "@/lib/api/users";
 import { apiErrorMessage } from "@/lib/api/client";
 import type { User } from "@/types/auth";
 
@@ -11,6 +18,18 @@ export function useUsers(params: ListUsersParams = {}) {
     queryKey: ["users", "list", params],
     queryFn: () => listUsers(params),
     staleTime: 30_000,
+  });
+}
+
+export function useInviteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: InviteUserInput) => inviteUser(input),
+    onSuccess: (user) => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      toast.success(`Invitation sent to ${user.email}`);
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, "Could not invite employee")),
   });
 }
 

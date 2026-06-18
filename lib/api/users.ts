@@ -64,3 +64,36 @@ export async function updateUser(input: UpdateUserInput): Promise<User> {
   const { data } = await apiClient.put<User>(`/users/${encodeURIComponent(email)}`, body);
   return data;
 }
+
+export interface InviteUserInput {
+  tenantSlug: string;
+  email: string;
+  displayName: string;
+  role: "admin" | "employee";
+  department?: string | null;
+  employeeId?: string | null;
+  managerEmail?: string | null;
+}
+
+export async function inviteUser(input: InviteUserInput): Promise<User> {
+  if (USE_MOCKS) {
+    await sleep(400);
+    const clash = MOCK_TEAM.find((u) => u.email.toLowerCase() === input.email.toLowerCase());
+    if (clash) throw new Error("Someone with that email is already on the team");
+    const user: User = {
+      id: `u_${input.tenantSlug}_${MOCK_TEAM.length + 1}`,
+      email: input.email,
+      displayName: input.displayName,
+      role: input.role,
+      tenantSlug: input.tenantSlug,
+      department: input.department ?? null,
+      employeeId: input.employeeId ?? null,
+      managerEmail: input.managerEmail ?? null,
+      authProvider: "local",
+    };
+    MOCK_TEAM.push(user);
+    return user;
+  }
+  const { data } = await apiClient.post<User>("/users", input);
+  return data;
+}

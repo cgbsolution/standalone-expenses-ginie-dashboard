@@ -2,15 +2,14 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ChevronRight, UserPlus } from "lucide-react";
-import { toast } from "sonner";
+import { ChevronRight } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { EmployeeProfileSheet } from "@/components/admin/employee-profile-sheet";
+import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useUsers } from "@/lib/hooks/use-users";
 import type { User } from "@/types/auth";
 
@@ -107,17 +106,7 @@ export default function TeamPage({ params }: PageProps) {
       <PageHeader
         title="Team"
         description="Manage your tenant's employees — invite, set roles, configure approval limits"
-        actions={
-          <Button
-            size="sm"
-            onClick={() =>
-              toast.info("Invite flow not wired yet — would POST to /users with default role=employee")
-            }
-          >
-            <UserPlus className="h-4 w-4" />
-            Invite employee
-          </Button>
-        }
+        actions={<InviteEmployeeSheet tenantSlug={slug} />}
       />
 
       <DataTable<User>
