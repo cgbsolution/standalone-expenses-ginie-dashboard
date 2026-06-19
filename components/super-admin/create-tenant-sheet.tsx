@@ -98,7 +98,7 @@ export function CreateTenantSheet() {
           New tenant
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-md">
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Create a tenant</SheetTitle>
           <SheetDescription>

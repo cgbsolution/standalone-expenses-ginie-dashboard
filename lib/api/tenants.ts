@@ -49,9 +49,6 @@ export async function createTenant(input: CreateTenantInput): Promise<Tenant> {
       customSubdomain: input.customSubdomain,
     };
   }
-  // POST /tenants is not yet implemented backend-side — until then we surface a
-  // friendly error rather than a 404 wall of text.
-  throw new Error(
-    "Tenant creation isn't wired to the backend yet. Add a `POST /tenants` route on expenses-backend.",
-  );
+  const { data } = await apiClient.post<Tenant>("/tenants", input);
+  return data;
 }
