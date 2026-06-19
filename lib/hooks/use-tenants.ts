@@ -28,7 +28,12 @@ export function useCreateTenant() {
     mutationFn: (input: CreateTenantInput) => createTenant(input),
     onSuccess: (tenant) => {
       qc.invalidateQueries({ queryKey: ["tenants"] });
-      toast.success(`${tenant.name} created`);
+      toast.success(`${tenant.name} created`, {
+        description: tenant.inviteUrl
+          ? `We emailed the admin a link to set their password. Or share it directly: ${tenant.inviteUrl}`
+          : "We emailed the admin a link to set their password.",
+        duration: 15000,
+      });
     },
     onError: (err) => toast.error(apiErrorMessage(err, "Could not create tenant")),
   });

@@ -110,6 +110,49 @@ export async function logout(): Promise<void> {
   clearSessionCookie();
 }
 
+/** Request a password-reset email. Always resolves (the backend never reveals
+ *  whether the address exists), so the UI shows the same confirmation either way. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  if (USE_MOCKS) {
+    await sleep(420);
+    return;
+  }
+  try {
+    await apiClient.post("/auth/forgot-password", { email });
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, "Could not send the reset email"));
+  }
+}
+
+/** Check whether a reset/invite token is still valid before showing the form. */
+export async function validateResetToken(token: string): Promise<{ valid: boolean; email?: string }> {
+  if (USE_MOCKS) {
+    await sleep(250);
+    return { valid: true, email: "demo@expgenie.com" };
+  }
+  try {
+    const { data } = await apiClient.get<{ valid: boolean; email?: string }>(
+      `/auth/reset-password/${encodeURIComponent(token)}`,
+    );
+    return data;
+  } catch {
+    return { valid: false };
+  }
+}
+
+/** Set a new password using a valid reset/invite token. */
+export async function resetPassword(token: string, password: string): Promise<void> {
+  if (USE_MOCKS) {
+    await sleep(420);
+    return;
+  }
+  try {
+    await apiClient.post("/auth/reset-password", { token, password });
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, "Could not reset your password"));
+  }
+}
+
 export async function fetchMe(email: string): Promise<User | null> {
   if (USE_MOCKS) {
     await sleep(200);

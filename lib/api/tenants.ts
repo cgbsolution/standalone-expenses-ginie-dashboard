@@ -30,7 +30,12 @@ export interface CreateTenantInput {
   customSubdomain?: string;
 }
 
-export async function createTenant(input: CreateTenantInput): Promise<Tenant> {
+/** The created tenant, plus the one-time link the new admin uses to set their
+ *  password (also emailed). Surfaced so the super-admin can share it manually
+ *  when email delivery isn't configured. */
+export type CreatedTenant = Tenant & { inviteUrl?: string | null };
+
+export async function createTenant(input: CreateTenantInput): Promise<CreatedTenant> {
   if (USE_MOCKS) {
     await sleep(400);
     const slug = input.customSubdomain ?? input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -47,8 +52,9 @@ export async function createTenant(input: CreateTenantInput): Promise<Tenant> {
       adminEmail: input.adminEmail,
       adminName: input.adminName,
       customSubdomain: input.customSubdomain,
+      inviteUrl: `${typeof window !== "undefined" ? window.location.origin : ""}/reset-password?token=demo-token`,
     };
   }
-  const { data } = await apiClient.post<Tenant>("/tenants", input);
+  const { data } = await apiClient.post<CreatedTenant>("/tenants", input);
   return data;
 }

@@ -27,7 +27,12 @@ export function useInviteUser() {
     mutationFn: (input: InviteUserInput) => inviteUser(input),
     onSuccess: (user) => {
       qc.invalidateQueries({ queryKey: ["users"] });
-      toast.success(`Invitation sent to ${user.email}`);
+      toast.success(`Invitation sent to ${user.email}`, {
+        description: user.inviteUrl
+          ? `They were emailed a link to set their password. Or share it directly: ${user.inviteUrl}`
+          : "They were emailed a link to set their password.",
+        duration: 15000,
+      });
     },
     onError: (err) => toast.error(apiErrorMessage(err, "Could not invite employee")),
   });

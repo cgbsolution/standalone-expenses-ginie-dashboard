@@ -75,7 +75,11 @@ export interface InviteUserInput {
   managerEmail?: string | null;
 }
 
-export async function inviteUser(input: InviteUserInput): Promise<User> {
+/** The invited user, plus the one-time link they use to set their password
+ *  (also emailed) — surfaced so an admin can share it manually if needed. */
+export type InvitedUser = User & { inviteUrl?: string | null };
+
+export async function inviteUser(input: InviteUserInput): Promise<InvitedUser> {
   if (USE_MOCKS) {
     await sleep(400);
     const clash = MOCK_TEAM.find((u) => u.email.toLowerCase() === input.email.toLowerCase());
@@ -92,8 +96,11 @@ export async function inviteUser(input: InviteUserInput): Promise<User> {
       authProvider: "local",
     };
     MOCK_TEAM.push(user);
-    return user;
+    return {
+      ...user,
+      inviteUrl: `${typeof window !== "undefined" ? window.location.origin : ""}/reset-password?token=demo-token`,
+    };
   }
-  const { data } = await apiClient.post<User>("/users", input);
+  const { data } = await apiClient.post<InvitedUser>("/users", input);
   return data;
 }
