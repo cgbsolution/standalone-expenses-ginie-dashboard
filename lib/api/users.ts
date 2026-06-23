@@ -104,3 +104,74 @@ export async function inviteUser(input: InviteUserInput): Promise<InvitedUser> {
   const { data } = await apiClient.post<InvitedUser>("/users", input);
   return data;
 }
+
+export interface BulkUserRow {
+  email: string;
+  displayName: string;
+  role?: "admin" | "employee";
+  department?: string | null;
+  grade?: string | null;
+  employeeId?: string | null;
+  managerEmail?: string | null;
+  financeManagerEmail?: string | null;
+}
+
+export interface BulkInviteResult {
+  created: string[];
+  duplicates: string[];
+  invalid: { email: string; reason: string }[];
+  createdCount: number;
+  duplicateCount: number;
+  invalidCount: number;
+}
+
+export async function bulkInviteUsers(
+  tenantSlug: string,
+  users: BulkUserRow[],
+): Promise<BulkInviteResult> {
+  if (USE_MOCKS) {
+    await sleep(600);
+    const created: string[] = [];
+    const duplicates: string[] = [];
+    const invalid: { email: string; reason: string }[] = [];
+    const seen = new Set<string>();
+    for (const row of users) {
+      const email = (row.email ?? "").trim().toLowerCase();
+      const name = (row.displayName ?? "").trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !name) {
+        invalid.push({ email: row.email ?? "", reason: !name ? "Missing name" : "Invalid email" });
+        continue;
+      }
+      const exists =
+        seen.has(email) || MOCK_TEAM.some((u) => u.email.toLowerCase() === email);
+      if (exists) {
+        duplicates.push(email);
+        continue;
+      }
+      seen.add(email);
+      MOCK_TEAM.push({
+        id: `u_${tenantSlug}_${MOCK_TEAM.length + 1}`,
+        email,
+        displayName: name,
+        role: row.role ?? "employee",
+        tenantSlug,
+        department: row.department ?? null,
+        grade: row.grade ?? null,
+        employeeId: row.employeeId ?? null,
+        managerEmail: row.managerEmail ?? null,
+        authProvider: "local",
+      });
+      created.push(email);
+    }
+    return {
+      created,
+      duplicates,
+      invalid,
+      createdCount: created.length,
+      duplicateCount: duplicates.length,
+      invalidCount: invalid.length,
+    };
+  }
+  const { data } = await apiClient.post<BulkInviteResult>("/users/bulk", { tenantSlug, users });
+  return data;
+}

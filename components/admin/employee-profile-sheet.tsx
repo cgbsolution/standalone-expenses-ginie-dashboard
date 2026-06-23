@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { EmployeeCombobox } from "@/components/admin/employee-combobox";
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
@@ -168,27 +169,35 @@ export function EmployeeProfileSheet({ user, open, onOpenChange }: EmployeeProfi
             </Field>
           </div>
 
-          <Field label="Manager email" htmlFor="managerEmail" error={form.formState.errors.managerEmail?.message}>
-            <Input
+          <Field label="Manager" htmlFor="managerEmail" error={form.formState.errors.managerEmail?.message}>
+            <EmployeeCombobox
               id="managerEmail"
-              type="email"
-              placeholder="manager@company.com"
-              {...form.register("managerEmail")}
+              tenantSlug={user.tenantSlug}
+              value={form.watch("managerEmail") ?? ""}
+              onChange={(email) =>
+                form.setValue("managerEmail", email, { shouldDirty: true, shouldValidate: true })
+              }
+              excludeEmail={user.email}
               disabled={!editing}
+              placeholder="Search for a manager…"
             />
           </Field>
 
           <Field
-            label="Finance manager email"
+            label="Finance manager"
             htmlFor="financeManagerEmail"
             error={form.formState.errors.financeManagerEmail?.message}
           >
-            <Input
+            <EmployeeCombobox
               id="financeManagerEmail"
-              type="email"
-              placeholder="finance@company.com"
-              {...form.register("financeManagerEmail")}
+              tenantSlug={user.tenantSlug}
+              value={form.watch("financeManagerEmail") ?? ""}
+              onChange={(email) =>
+                form.setValue("financeManagerEmail", email, { shouldDirty: true, shouldValidate: true })
+              }
+              excludeEmail={user.email}
               disabled={!editing}
+              placeholder="Search for a finance manager…"
             />
           </Field>
 

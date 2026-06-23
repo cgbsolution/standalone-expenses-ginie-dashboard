@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useInviteUser } from "@/lib/hooks/use-users";
+import { EmployeeCombobox } from "@/components/admin/employee-combobox";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
@@ -122,15 +123,16 @@ export function InviteEmployeeSheet({ tenantSlug }: { tenantSlug: string }) {
           </div>
 
           <Field
-            label="Manager email"
+            label="Manager"
             htmlFor="managerEmail"
             error={form.formState.errors.managerEmail?.message}
           >
-            <Input
+            <EmployeeCombobox
               id="managerEmail"
-              type="email"
-              placeholder="manager@company.com"
-              {...form.register("managerEmail")}
+              tenantSlug={tenantSlug}
+              value={form.watch("managerEmail") ?? ""}
+              onChange={(email) => form.setValue("managerEmail", email, { shouldValidate: true })}
+              placeholder="Search for a manager…"
             />
           </Field>
 

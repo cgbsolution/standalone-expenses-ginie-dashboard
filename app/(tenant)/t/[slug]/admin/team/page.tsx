@@ -9,6 +9,7 @@ import { DataTable } from "@/components/shared/data-table";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { EmployeeProfileSheet } from "@/components/admin/employee-profile-sheet";
 import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
+import { BulkImportSheet } from "@/components/admin/bulk-import-sheet";
 import { Badge } from "@/components/ui/badge";
 import { useUsers } from "@/lib/hooks/use-users";
 import type { User } from "@/types/auth";
@@ -106,7 +107,12 @@ export default function TeamPage({ params }: PageProps) {
       <PageHeader
         title="Team"
         description="Manage your tenant's employees — invite, set roles, configure approval limits"
-        actions={<InviteEmployeeSheet tenantSlug={slug} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <BulkImportSheet tenantSlug={slug} />
+            <InviteEmployeeSheet tenantSlug={slug} />
+          </div>
+        }
       />
 
       <DataTable<User>

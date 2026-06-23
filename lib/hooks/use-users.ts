@@ -3,9 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  bulkInviteUsers,
   inviteUser,
   listUsers,
   updateUser,
+  type BulkUserRow,
   type InviteUserInput,
   type ListUsersParams,
   type UpdateUserInput,
@@ -35,6 +37,31 @@ export function useInviteUser() {
       });
     },
     onError: (err) => toast.error(apiErrorMessage(err, "Could not invite employee")),
+  });
+}
+
+export function useBulkInviteUsers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tenantSlug, users }: { tenantSlug: string; users: BulkUserRow[] }) =>
+      bulkInviteUsers(tenantSlug, users),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      const parts = [`${result.createdCount} added`];
+      if (result.duplicateCount) parts.push(`${result.duplicateCount} duplicate${result.duplicateCount > 1 ? "s" : ""} skipped`);
+      if (result.invalidCount) parts.push(`${result.invalidCount} invalid`);
+      const summary = parts.join(" · ");
+      if (result.createdCount > 0) {
+        toast.success(`Import complete — ${summary}`, {
+          description: result.createdCount
+            ? "New employees were emailed a link to set their password."
+            : undefined,
+        });
+      } else {
+        toast.info(`Nothing imported — ${summary}`);
+      }
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, "Could not import employees")),
   });
 }
 
