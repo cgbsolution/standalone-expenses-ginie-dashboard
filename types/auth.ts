@@ -22,6 +22,8 @@ export interface User {
   costCenter?: string | null;
   sectionCode?: string | null;
   authProvider?: "local" | "microsoft";
+  /** Self-service sign-in provider chosen on the Integrations row (microsoft | google | email). */
+  integrationProvider?: string | null;
 
   // ---- dashboard-only (synthesized client-side until backend supports) ----
   role: Role;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,7 @@ import {
   Mail,
   Monitor,
   Moon,
+  Plug,
   ShieldCheck,
   Sun,
   type LucideIcon,
@@ -32,6 +33,8 @@ import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { updateProfile, uploadAvatar } from "@/lib/api/users";
+import { apiErrorMessage } from "@/lib/api/client";
 import type { Role } from "@/types/auth";
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -40,14 +43,61 @@ const ROLE_LABELS: Record<Role, string> = {
   employee: "Employee",
 };
 
+// Sign-in providers a user can connect on the Integrations row (mirrors mobile).
+const PROVIDERS = [
+  { value: "microsoft", label: "Microsoft" },
+  { value: "google", label: "Google" },
+  { value: "email", label: "Email" },
+] as const;
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 export default function ProfilePage() {
   const params = useSearchParams();
   const initialTab = params.get("tab") === "notifications" ? "notifications" : "general";
   const session = useAuthStore((s) => s.session);
   const setUser = useAuthStore((s) => s.setUser);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [providerBusy, setProviderBusy] = useState(false);
 
   if (!session) return null;
   const { user } = session;
+
+  async function handleAvatarFile(file: File) {
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      toast.error("Choose a JPEG, PNG, or WebP image");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error("Image must be 5 MB or smaller");
+      return;
+    }
+    setAvatarBusy(true);
+    try {
+      const updated = await uploadAvatar(user.email, file);
+      setUser({ ...user, avatarUrl: updated.avatarUrl ?? undefined });
+      toast.success("Profile photo updated");
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Could not upload your photo"));
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function handleProviderChange(provider: string) {
+    if (provider === (user.integrationProvider ?? "")) return;
+    setProviderBusy(true);
+    try {
+      const updated = await updateProfile({ email: user.email, integrationProvider: provider });
+      setUser({ ...user, integrationProvider: updated.integrationProvider ?? provider });
+      toast.success("Sign-in provider updated");
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Could not update your provider"));
+    } finally {
+      setProviderBusy(false);
+    }
+  }
 
   return (
     <>
@@ -65,6 +115,11 @@ export default function ProfilePage() {
           department={user.department ?? null}
           employeeId={user.employeeId ?? null}
           avatarUrl={user.avatarUrl ?? null}
+          integrationProvider={user.integrationProvider ?? null}
+          avatarBusy={avatarBusy}
+          providerBusy={providerBusy}
+          onAvatarFile={handleAvatarFile}
+          onProviderChange={handleProviderChange}
         />
 
         <Tabs defaultValue={initialTab} className="w-full">
@@ -123,6 +178,11 @@ interface IdentityCardProps {
   department: string | null;
   employeeId: string | null;
   avatarUrl: string | null;
+  integrationProvider: string | null;
+  avatarBusy: boolean;
+  providerBusy: boolean;
+  onAvatarFile: (file: File) => void;
+  onProviderChange: (provider: string) => void;
 }
 
 function IdentityCard({
@@ -133,7 +193,14 @@ function IdentityCard({
   department,
   employeeId,
   avatarUrl,
+  integrationProvider,
+  avatarBusy,
+  providerBusy,
+  onAvatarFile,
+  onProviderChange,
 }: IdentityCardProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <SectionCard className="overflow-hidden">
       <div className="relative -mx-6 -mt-5 h-24 bg-gradient-to-br from-primary/30 via-violet-500/20 to-cyan-500/10">
@@ -142,13 +209,29 @@ function IdentityCard({
       <div className="-mt-10 flex flex-col items-center text-center">
         <div className="relative">
           <UserAvatar name={name} src={avatarUrl ?? undefined} size="lg" className="h-20 w-20 ring-4 ring-card" />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onAvatarFile(file);
+              e.target.value = ""; // allow re-selecting the same file
+            }}
+          />
           <button
             type="button"
             aria-label="Change avatar"
-            onClick={() => toast.info("Avatar upload — wire to /users/me/avatar when backend supports it")}
-            className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-secondary"
+            disabled={avatarBusy}
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-secondary disabled:opacity-60"
           >
-            <Camera className="h-3.5 w-3.5" />
+            {avatarBusy ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            ) : (
+              <Camera className="h-3.5 w-3.5" />
+            )}
           </button>
         </div>
         <h3 className="mt-4 text-base font-semibold">{name}</h3>
@@ -170,6 +253,30 @@ function IdentityCard({
         {employeeId ? <Row icon={CheckCircle2} label="Employee ID" value={employeeId} mono /> : null}
         <Row icon={Clock} label="Joined" value={formatRelative(Date.now() - 1000 * 60 * 60 * 24 * 124)} />
       </dl>
+
+      <Separator className="my-5" />
+
+      <div className="space-y-2">
+        <Label htmlFor="integrationProvider" className="inline-flex items-center gap-2 text-muted-foreground">
+          <Plug className="h-3.5 w-3.5" /> Sign-in provider
+        </Label>
+        <select
+          id="integrationProvider"
+          value={integrationProvider ?? ""}
+          disabled={providerBusy}
+          onChange={(e) => onProviderChange(e.target.value)}
+          className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+        >
+          <option value="" disabled>
+            Select a provider…
+          </option>
+          {PROVIDERS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </SectionCard>
   );
 }

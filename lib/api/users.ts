@@ -65,6 +65,51 @@ export async function updateUser(input: UpdateUserInput): Promise<User> {
   return data;
 }
 
+export interface UpdateProfileInput {
+  email: string;
+  integrationProvider?: string | null;
+  avatarUrl?: string | null;
+}
+
+/** Self-service profile fields (integration provider, avatar URL). */
+export async function updateProfile(input: UpdateProfileInput): Promise<User> {
+  if (USE_MOCKS) {
+    await sleep(250);
+    const existing = MOCK_TEAM.find((u) => u.email === input.email);
+    if (!existing) throw new Error("User not found");
+    if (input.integrationProvider !== undefined) {
+      existing.integrationProvider = input.integrationProvider;
+    }
+    if (input.avatarUrl !== undefined) existing.avatarUrl = input.avatarUrl ?? undefined;
+    return { ...existing };
+  }
+  const { email, ...body } = input;
+  const { data } = await apiClient.patch<User>(
+    `/users/${encodeURIComponent(email)}/profile`,
+    body,
+  );
+  return data;
+}
+
+/** Upload a profile picture; returns the updated user (with the new avatarUrl). */
+export async function uploadAvatar(email: string, file: File): Promise<User> {
+  if (USE_MOCKS) {
+    await sleep(400);
+    const existing = MOCK_TEAM.find((u) => u.email === email);
+    if (!existing) throw new Error("User not found");
+    existing.avatarUrl = URL.createObjectURL(file);
+    return { ...existing };
+  }
+  const form = new FormData();
+  form.append("file", file);
+  const { data } = await apiClient.post<User>(
+    `/users/${encodeURIComponent(email)}/avatar`,
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return data;
+}
+
 export interface InviteUserInput {
   tenantSlug: string;
   email: string;
