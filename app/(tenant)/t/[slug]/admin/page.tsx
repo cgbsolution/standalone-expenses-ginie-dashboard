@@ -35,9 +35,13 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
   const { data, isLoading } = useAdminDashboard(slug);
   const { data: expenses } = useApproverExpenses(userEmail);
 
+  const pendingCount = (expenses ?? []).filter(
+    (e) => e.ApprovalStatus === "Pending",
+  ).length;
+
   return (
     <>
-      <WelcomeBanner slug={slug} />
+      <WelcomeBanner slug={slug} pending={pendingCount} />
 
       <PageHeader
         title="Dashboard"
@@ -110,7 +114,7 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
   );
 }
 
-function WelcomeBanner({ slug }: { slug: string }) {
+function WelcomeBanner({ slug, pending }: { slug: string; pending: number }) {
   const name = useAuthStore((s) => s.session?.user.givenName ?? "there");
   return (
     <div className="relative mb-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/20 via-card to-card p-6 shadow-card-light dark:shadow-card-dark">
@@ -122,7 +126,9 @@ function WelcomeBanner({ slug }: { slug: string }) {
           </p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight">Hey {name}, here's your day.</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            17 expenses need your decision — average pending age 1d 4h. Stay sharp.
+            {pending > 0
+              ? `${pending} ${pending === 1 ? "expense needs" : "expenses need"} your decision. Stay sharp.`
+              : "No approvals pending — you're all caught up."}
           </p>
         </div>
         <Button size="sm" variant="default" className="shrink-0">

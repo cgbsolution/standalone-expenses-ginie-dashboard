@@ -66,7 +66,7 @@ export function adminNav(slug: string): NavSection[] {
       items: [
         { label: "Dashboard", href: base, icon: LayoutDashboard },
         { label: "Expenses", href: `${base}/expenses`, icon: Receipt },
-        { label: "Approvals", href: `${base}/approvals`, icon: ShieldCheck, badge: "3" },
+        { label: "Approvals", href: `${base}/approvals`, icon: ShieldCheck },
       ],
     },
     {

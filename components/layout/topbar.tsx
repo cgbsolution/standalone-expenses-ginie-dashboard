@@ -6,7 +6,6 @@ import { CommandPalette } from "./command-palette";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -14,6 +13,14 @@ import {
 } from "@/components/ui/popover";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useAuthStore } from "@/stores/auth-store";
+import {
+  useNotifications,
+  useUnreadCount,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from "@/lib/hooks/use-notifications";
+import { formatRelative } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export function Topbar() {
   const setMobileOpen = useSidebarStore((s) => s.setMobileOpen);
@@ -66,32 +73,69 @@ function TenantSwitcher() {
 }
 
 function NotificationsBell() {
+  const email = useAuthStore((s) => s.session?.user?.email);
+  const { data: items = [], isLoading } = useNotifications(email);
+  const { data: unreadCount = 0 } = useUnreadCount(email);
+  const markRead = useMarkNotificationRead();
+  const markAll = useMarkAllNotificationsRead();
+
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon-sm" aria-label="Notifications" className="relative">
           <Bell className="h-4 w-4" />
-          <span className="absolute right-1 top-1 inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
+          {unreadCount > 0 ? (
+            <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-semibold text-destructive-foreground">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          ) : null}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <p className="text-sm font-semibold">Notifications</p>
-          <Badge variant="default" className="px-1.5 text-[10px]">
-            3 new
-          </Badge>
+          {unreadCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => email && markAll.mutate(email)}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Mark all read
+            </button>
+          ) : null}
         </div>
         <ul className="max-h-80 divide-y divide-border/60 overflow-y-auto">
-          {[
-            "Riya approved EXP-2026-0428",
-            "Lumen Robotics upgraded to Growth",
-            "Northwind invoice payment received",
-          ].map((msg, i) => (
-            <li key={i} className="flex flex-col gap-1 px-4 py-3 text-xs">
-              <span className="text-foreground">{msg}</span>
-              <span className="text-muted-foreground">a few minutes ago</span>
+          {isLoading ? (
+            <li className="px-4 py-6 text-center text-xs text-muted-foreground">Loading…</li>
+          ) : items.length === 0 ? (
+            <li className="px-4 py-8 text-center text-xs text-muted-foreground">
+              You&apos;re all caught up
             </li>
-          ))}
+          ) : (
+            items.map((n) => (
+              <li
+                key={n.id}
+                onClick={() => {
+                  if (!n.read) markRead.mutate(n.id);
+                }}
+                className={cn(
+                  "flex cursor-pointer flex-col gap-1 px-4 py-3 text-xs transition-colors hover:bg-muted/50",
+                  !n.read && "bg-primary/5",
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-medium text-foreground">{n.title}</span>
+                  {!n.read ? (
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  ) : null}
+                </div>
+                <span className="text-muted-foreground">{n.body}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {formatRelative(n.createdAt)}
+                </span>
+              </li>
+            ))
+          )}
         </ul>
       </PopoverContent>
     </Popover>
