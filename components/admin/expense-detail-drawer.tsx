@@ -114,9 +114,29 @@ export function ExpenseDetailDrawer({
   disabled?: boolean;
 }) {
   const [opening, setOpening] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ url: string; name: string; kind: "image" | "pdf" } | null>(null);
+  const [preview, setPreview] = useState<{
+    url: string;        // what we embed (blob: URL when possible)
+    directUrl: string;  // the real signed URL, for "Open in new tab"
+    name: string;
+    kind: "image" | "pdf";
+  } | null>(null);
+
+  const closePreview = () => {
+    if (preview?.url.startsWith("blob:")) URL.revokeObjectURL(preview.url);
+    setPreview(null);
+  };
+
+  const mimeFromName = (s: string): string => {
+    if (/\.png(\?|$)/i.test(s)) return "image/png";
+    if (/\.gif(\?|$)/i.test(s)) return "image/gif";
+    if (/\.webp(\?|$)/i.test(s)) return "image/webp";
+    return "image/jpeg";
+  };
 
   // Sign the storage path, then show the file full-size in a popup.
+  // Storage servers often return Content-Type: octet-stream or a download
+  // disposition, which makes an <iframe>/<img> render blank — so we fetch the
+  // bytes and re-wrap them as a correctly-typed blob before embedding.
   const openPreview = async (att: AttachmentRef, key: string) => {
     setOpening(key);
     try {
@@ -125,8 +145,26 @@ export function ExpenseDetailDrawer({
         const { data } = await apiClient.get<{ url: string }>("/storage/sign", { params: { path: att.path } });
         url = data.url;
       }
-      const kind = /\.pdf(\?|$)/i.test(att.path) || /\.pdf$/i.test(att.name) ? "pdf" : "image";
-      setPreview({ url, name: att.name, kind });
+      const kind = /\.pdf(\?|$)/i.test(att.path) || /\.pdf(\?|$)/i.test(att.name) ? "pdf" : "image";
+
+      let embedUrl = url;
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const raw = await res.blob();
+          const mime =
+            kind === "pdf"
+              ? "application/pdf"
+              : raw.type && raw.type !== "application/octet-stream"
+                ? raw.type
+                : mimeFromName(att.name || att.path);
+          embedUrl = URL.createObjectURL(new Blob([raw], { type: mime }));
+        }
+      } catch {
+        // CORS or network hiccup — fall back to embedding the signed URL directly.
+      }
+
+      setPreview({ url: embedUrl, directUrl: url, name: att.name, kind });
     } catch {
       toast.error("Could not open the receipt.");
     } finally {
@@ -271,7 +309,7 @@ export function ExpenseDetailDrawer({
     </Sheet>
 
     {/* Full-size attachment preview */}
-    <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+    <Dialog open={!!preview} onOpenChange={(o) => !o && closePreview()}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="truncate pr-8 text-sm">{preview?.name}</DialogTitle>
@@ -294,7 +332,9 @@ export function ExpenseDetailDrawer({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => preview && window.open(preview.url, "_blank", "noopener")}
+            // Prefer the typed blob URL — it renders inline in the new tab.
+            // The raw signed URL would trigger a download for octet-stream files.
+            onClick={() => preview && window.open(preview.url || preview.directUrl, "_blank", "noopener")}
           >
             <ExternalLink className="h-3.5 w-3.5" /> Open in new tab
           </Button>
