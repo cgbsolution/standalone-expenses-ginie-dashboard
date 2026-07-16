@@ -35,7 +35,7 @@ interface TieredAmountProps {
  * matters more than chart-style precision — approvals queue, recent expenses,
  * activity feeds.
  */
-export function TieredAmount({ amount, currency = "USD", className, size = "md" }: TieredAmountProps) {
+export function TieredAmount({ amount, currency = "INR", className, size = "md" }: TieredAmountProps) {
   const tier = tierFor(amount);
   const sizeClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
   return (

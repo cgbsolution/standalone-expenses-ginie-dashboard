@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, Eye } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { ExpenseDetailDrawer } from "@/components/admin/expense-detail-drawer";
 import { Button } from "@/components/ui/button";
 import { useMyExpenses } from "@/lib/hooks/use-expenses";
 import { useAuthStore } from "@/stores/auth-store";
@@ -20,6 +21,8 @@ export default function ExpensesPage() {
   // Each person sees only their OWN submissions — regardless of role.
   const email = useAuthStore((s) => s.session?.user.email ?? "");
   const { data: expenses, isLoading, error, refetch } = useMyExpenses(email);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const activeExpense = detailId ? (expenses ?? []).find((e) => e.id === detailId) ?? null : null;
 
   const columns = useMemo<ColumnDef<MasterExpense, unknown>[]>(
     () => [
@@ -68,6 +71,23 @@ export default function ExpensesPage() {
           return <CurrencyDisplay value={amount} currency="INR" />;
         },
       },
+      {
+        id: "actions",
+        header: "",
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="View details"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDetailId(row.original.id);
+            }}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        ),
+      },
     ],
     [],
   );
@@ -104,9 +124,16 @@ export default function ExpensesPage() {
         isLoading={isLoading}
         error={error as Error | null}
         onRetry={() => refetch()}
+        onRowClick={(row) => setDetailId(row.id)}
         searchPlaceholder="Search title, ID, submitter…"
         emptyTitle="No expenses yet"
-        emptyDescription="When your team submits expenses, they'll appear here."
+        emptyDescription="Submit an expense from the mobile app and it'll appear here."
+      />
+
+      <ExpenseDetailDrawer
+        expense={activeExpense}
+        open={!!detailId}
+        onOpenChange={(open) => !open && setDetailId(null)}
       />
     </>
   );

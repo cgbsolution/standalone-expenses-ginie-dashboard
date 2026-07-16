@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMyExpenses } from "@/lib/hooks/use-expenses";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatCompactCurrency, formatCompactNumber, formatDate, formatRelative } from "@/lib/format";
+import { expenseTotal } from "@/lib/expense";
 import type { MasterExpense } from "@/types/expense";
 
 interface PageProps {
@@ -239,7 +240,7 @@ function RecentSubmissions({
                   {formatRelative(e.SubmissionDate)}
                 </p>
               </div>
-              <CurrencyDisplay value={e.TotalAmount} className="text-sm" />
+              <CurrencyDisplay value={expenseTotal(e)} className="text-sm" />
               <StatusBadge status={e.ApprovalStatus} />
             </li>
           ))}
@@ -261,12 +262,12 @@ function deriveStats(expenses: MasterExpense[]) {
 
   for (const e of expenses) {
     const submittedAt = new Date(e.SubmissionDate).getTime();
-    if (submittedAt >= monthStart) monthSpend += e.TotalAmount;
+    if (submittedAt >= monthStart) monthSpend += expenseTotal(e);
     if (e.ApprovalStatus === "Pending") pending += 1;
     if (e.ApprovalStatus === "Approved") {
       approved += 1;
       const approvedAt = e.ApprovedAt ? new Date(e.ApprovedAt).getTime() : submittedAt;
-      if (approvedAt >= thirtyDaysAgo) reimbursed30d += e.TotalAmount;
+      if (approvedAt >= thirtyDaysAgo) reimbursed30d += expenseTotal(e);
     }
   }
   return { monthSpend, pending, approved, reimbursed30d };
@@ -286,7 +287,7 @@ function buildMonthlySeries(expenses: MasterExpense[]): { month: string; spend: 
     const d = new Date(e.SubmissionDate);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const bucket = byKey.get(key);
-    if (bucket) bucket.spend += e.TotalAmount;
+    if (bucket) bucket.spend += expenseTotal(e);
   }
   return months.map(({ label, spend }) => ({ month: label, spend }));
 }

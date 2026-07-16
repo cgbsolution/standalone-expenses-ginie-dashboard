@@ -5,8 +5,8 @@ const currencyFormatters = new Map<string, Intl.NumberFormat>();
 
 export function formatCurrency(
   value: number,
-  currency: Currency = "USD",
-  locale = "en-US",
+  currency: Currency = "INR",
+  locale = "en-IN",
 ): string {
   const key = `${locale}:${currency}`;
   let f = currencyFormatters.get(key);
@@ -23,8 +23,8 @@ export function formatCurrency(
 
 export function formatCompactCurrency(
   value: number,
-  currency: Currency = "USD",
-  locale = "en-US",
+  currency: Currency = "INR",
+  locale = "en-IN",
 ): string {
   return new Intl.NumberFormat(locale, {
     style: "currency",

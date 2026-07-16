@@ -211,9 +211,12 @@ function SidebarNav({
 
 function isItemActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
-  if (href === "/super-admin") return pathname === "/super-admin";
-  if (href.endsWith("/admin")) return pathname === href;
-  return pathname.startsWith(href + "/") || pathname === href;
+  // Section-root items (the dashboards) must match EXACTLY — otherwise they'd
+  // stay highlighted on every child route (e.g. Dashboard lit while on Expenses).
+  if (href === "/super-admin" || href.endsWith("/admin") || href.endsWith("/employee")) {
+    return false;
+  }
+  return pathname.startsWith(href + "/");
 }
 
 function SidebarFooter({
