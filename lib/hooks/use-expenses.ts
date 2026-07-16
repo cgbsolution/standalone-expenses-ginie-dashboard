@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getExpenseCounts,
+  listAllExpenses,
   listApproverExpenses,
   listExpenses,
   updateExpenseStatus,
@@ -28,6 +29,17 @@ export function useApproverExpenses(email: string) {
     queryFn: () => listApproverExpenses(email),
     staleTime: 30_000,
     enabled: !!email,
+  });
+}
+
+/** Team-wide: every submission across the company (admin Expenses page). */
+export function useAllExpenses(
+  approvalStatus?: "All" | "Pending" | "Approved" | "Rejected" | "Draft",
+) {
+  return useQuery({
+    queryKey: ["expenses", "all", approvalStatus ?? "All"],
+    queryFn: () => listAllExpenses(approvalStatus),
+    staleTime: 30_000,
   });
 }
 

@@ -10,15 +10,14 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { useApproverExpenses } from "@/lib/hooks/use-expenses";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAllExpenses } from "@/lib/hooks/use-expenses";
 import { formatDate, formatRelative } from "@/lib/format";
 import { toast } from "sonner";
 import type { MasterExpense } from "@/types/expense";
 
 export default function ExpensesPage() {
-  const userEmail = useAuthStore((s) => s.session?.user.email ?? "");
-  const { data: expenses, isLoading, error, refetch } = useApproverExpenses(userEmail);
+  // Team-wide: every submission across the company, not just what this admin approves.
+  const { data: expenses, isLoading, error, refetch } = useAllExpenses();
 
   const columns = useMemo<ColumnDef<MasterExpense, unknown>[]>(
     () => [

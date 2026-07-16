@@ -21,6 +21,21 @@ export async function listExpenses(params: ListExpensesParams): Promise<MasterEx
   return data;
 }
 
+/** GET /master-expense/all?status= — team-wide admin view (every submission). */
+export async function listAllExpenses(
+  approvalStatus?: ApprovalStatus | "All",
+): Promise<MasterExpense[]> {
+  if (USE_MOCKS) {
+    await sleep(260);
+    if (!approvalStatus || approvalStatus === "All") return MOCK_EXPENSES;
+    return MOCK_EXPENSES.filter((e) => e.ApprovalStatus === approvalStatus);
+  }
+  const { data } = await apiClient.get<MasterExpense[]>("/master-expense/all", {
+    params: approvalStatus && approvalStatus !== "All" ? { status: approvalStatus } : undefined,
+  });
+  return data;
+}
+
 /** GET /master-expense/approver?email= */
 export async function listApproverExpenses(email: string): Promise<MasterExpense[]> {
   if (USE_MOCKS) {
