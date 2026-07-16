@@ -49,7 +49,7 @@ export default function TenantDetailPage({ params }: PageProps) {
 
           <section className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             <Kpi icon={Users2} label="Users" node={<span>{tenant.userCount}</span>} />
-            <Kpi icon={Wallet} label="MRR" node={<CurrencyDisplay value={tenant.mrr || 0} currency="USD" compact />} />
+            <Kpi icon={Wallet} label="MRR" node={<CurrencyDisplay value={tenant.mrr || 0} currency="INR" compact />} />
             <Kpi icon={Receipt} label="30-day volume" node={<CurrencyDisplay value={tenant.monthlyExpenseVolume || 0} currency="INR" compact />} />
             <Kpi icon={CalendarDays} label="Created" node={<span className="text-base">{formatDate(tenant.createdAt)}</span>} />
           </section>

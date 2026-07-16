@@ -38,6 +38,20 @@ export function formatNumber(value: number, locale = "en-US"): string {
   return new Intl.NumberFormat(locale).format(value);
 }
 
+/**
+ * Coerce a possibly-messy amount into a finite number.
+ * Backend TotalAmount can arrive as a number, a comma-formatted string
+ * ("14,820.00"), or be missing — all of which otherwise render as "NaN".
+ */
+export function toAmount(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") {
+    const n = Number(value.replace(/,/g, "").trim());
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
 export function formatCompactNumber(value: number, locale = "en-US"): string {
   return new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(
     value,

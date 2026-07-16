@@ -10,14 +10,16 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { useAllExpenses } from "@/lib/hooks/use-expenses";
-import { formatDate, formatRelative } from "@/lib/format";
+import { useMyExpenses } from "@/lib/hooks/use-expenses";
+import { useAuthStore } from "@/stores/auth-store";
+import { formatDate, formatRelative, toAmount } from "@/lib/format";
 import { toast } from "sonner";
 import type { MasterExpense } from "@/types/expense";
 
 export default function ExpensesPage() {
-  // Team-wide: every submission across the company, not just what this admin approves.
-  const { data: expenses, isLoading, error, refetch } = useAllExpenses();
+  // Each person sees only their OWN submissions — regardless of role.
+  const email = useAuthStore((s) => s.session?.user.email ?? "");
+  const { data: expenses, isLoading, error, refetch } = useMyExpenses(email);
 
   const columns = useMemo<ColumnDef<MasterExpense, unknown>[]>(
     () => [
@@ -58,7 +60,13 @@ export default function ExpensesPage() {
       {
         accessorKey: "TotalAmount",
         header: "Amount",
-        cell: ({ row }) => <CurrencyDisplay value={row.original.TotalAmount} />,
+        cell: ({ row }) => {
+          const t = toAmount(row.original.TotalAmount);
+          const amount = t > 0
+            ? t
+            : (row.original.ExpenseData ?? []).reduce((s, inv) => s + toAmount(inv.InvoiceAmount), 0);
+          return <CurrencyDisplay value={amount} currency="INR" />;
+        },
       },
     ],
     [],
@@ -68,7 +76,7 @@ export default function ExpensesPage() {
     <>
       <PageHeader
         title="Expenses"
-        description="Every submission across your team — filter, drill in, export"
+        description="Your expense submissions — filter, drill in, export"
         actions={
           <>
             <Button

@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { useAllExpenses } from "@/lib/hooks/use-expenses";
+import { useMyExpenses } from "@/lib/hooks/use-expenses";
+import { useAuthStore } from "@/stores/auth-store";
 import apiClient from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
@@ -48,7 +49,8 @@ function buildDocs(expenses: MasterExpense[]): Doc[] {
 }
 
 export default function DocumentsPage() {
-  const { data: expenses, isLoading } = useAllExpenses();
+  const email = useAuthStore((s) => s.session?.user.email ?? "");
+  const { data: expenses, isLoading } = useMyExpenses(email);
   const [q, setQ] = useState("");
   const [opening, setOpening] = useState<string | null>(null);
 

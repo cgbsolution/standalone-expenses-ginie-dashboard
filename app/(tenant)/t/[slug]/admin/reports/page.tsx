@@ -10,12 +10,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { useAllExpenses } from "@/lib/hooks/use-expenses";
-import { formatDate } from "@/lib/format";
+import { useMyExpenses } from "@/lib/hooks/use-expenses";
+import { useAuthStore } from "@/stores/auth-store";
+import { formatDate, toAmount } from "@/lib/format";
 import type { MasterExpense } from "@/types/expense";
 
 function categoryOf(exp: MasterExpense): string {
   return exp.ExpenseData?.[0]?.Category || "Uncategorised";
+}
+
+// Robust total: use TotalAmount if it parses, else sum the invoice lines.
+function expenseTotal(e: MasterExpense): number {
+  const t = toAmount(e.TotalAmount);
+  return t > 0 ? t : (e.ExpenseData ?? []).reduce((s, inv) => s + toAmount(inv.InvoiceAmount), 0);
 }
 
 function aggregate<T extends string>(rows: { key: T; amount: number }[]) {
@@ -35,7 +42,7 @@ function toCsv(expenses: MasterExpense[]): string {
   const head = ["Expense ID", "Title", "Submitter", "Category", "Status", "Submitted", "Amount (INR)"];
   const esc = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
   const lines = expenses.map((e) =>
-    [e.ExpenseId, e.ExpenseTitle, e.SubmitterName || e.SubmitterEmail, categoryOf(e), e.ApprovalStatus, e.SubmissionDate, Number(e.TotalAmount) || 0]
+    [e.ExpenseId, e.ExpenseTitle, e.SubmitterName || e.SubmitterEmail, categoryOf(e), e.ApprovalStatus, e.SubmissionDate, expenseTotal(e)]
       .map(esc)
       .join(","),
   );
@@ -43,11 +50,12 @@ function toCsv(expenses: MasterExpense[]): string {
 }
 
 export default function ReportsPage() {
-  const { data: expenses, isLoading } = useAllExpenses();
+  const email = useAuthStore((s) => s.session?.user.email ?? "");
+  const { data: expenses, isLoading } = useMyExpenses(email);
 
   const stats = useMemo(() => {
     const list = expenses ?? [];
-    const amt = (e: MasterExpense) => Number(e.TotalAmount) || 0;
+    const amt = (e: MasterExpense) => expenseTotal(e);
     const approved = list.filter((e) => e.ApprovalStatus === "Approved");
     const pending = list.filter((e) => e.ApprovalStatus === "Pending");
     const totalApproved = approved.reduce((s, e) => s + amt(e), 0);
@@ -175,7 +183,7 @@ export default function ReportsPage() {
                       <td className="py-2 pr-3 text-muted-foreground">{e.SubmitterName || e.SubmitterEmail}</td>
                       <td className="py-2 pr-3"><StatusBadge status={e.ApprovalStatus} /></td>
                       <td className="py-2 pr-3 text-muted-foreground">{formatDate(e.SubmissionDate)}</td>
-                      <td className="py-2 text-right"><CurrencyDisplay value={Number(e.TotalAmount) || 0} currency="INR" /></td>
+                      <td className="py-2 text-right"><CurrencyDisplay value={expenseTotal(e)} currency="INR" /></td>
                     </tr>
                   ))}
                 </tbody>

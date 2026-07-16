@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
-import { useAllExpenses } from "@/lib/hooks/use-expenses";
+import { useMyExpenses } from "@/lib/hooks/use-expenses";
+import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { MasterExpense } from "@/types/expense";
@@ -72,7 +73,8 @@ function dayBucket(iso: string): string {
 }
 
 export default function ActivityPage() {
-  const { data: expenses, isLoading } = useAllExpenses();
+  const email = useAuthStore((s) => s.session?.user.email ?? "");
+  const { data: expenses, isLoading } = useMyExpenses(email);
   const [q, setQ] = useState("");
 
   const grouped = useMemo(() => {

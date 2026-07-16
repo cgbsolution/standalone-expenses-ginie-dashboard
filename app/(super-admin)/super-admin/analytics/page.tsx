@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { useTenants } from "@/lib/hooks/use-tenants";
 import { useAllExpenses } from "@/lib/hooks/use-expenses";
+import { toAmount } from "@/lib/format";
 import type { MasterExpense } from "@/types/expense";
 
 const PLANS = ["starter", "growth", "scale", "enterprise"] as const;
@@ -29,7 +30,7 @@ export default function AnalyticsPage() {
     const catMap = new Map<string, number>();
     for (const e of expenses ?? []) {
       const c = (e as MasterExpense).ExpenseData?.[0]?.Category || "Uncategorised";
-      catMap.set(c, (catMap.get(c) || 0) + (Number((e as MasterExpense).TotalAmount) || 0));
+      catMap.set(c, (catMap.get(c) || 0) + toAmount((e as MasterExpense).TotalAmount));
     }
     const categories = Array.from(catMap.entries()).map(([key, total]) => ({ key, total })).sort((a, b) => b.total - a.total).slice(0, 6);
     const maxCat = Math.max(1, ...categories.map((c) => c.total));
@@ -45,7 +46,7 @@ export default function AnalyticsPage() {
   const kpis = [
     { label: "Tenants", icon: Building2, node: <span>{stats.tenants}</span> },
     { label: "Total users", icon: Users2, node: <span>{stats.users}</span> },
-    { label: "Platform MRR", icon: Wallet, node: <CurrencyDisplay value={stats.mrr} currency="USD" compact /> },
+    { label: "Platform MRR", icon: Wallet, node: <CurrencyDisplay value={stats.mrr} currency="INR" compact /> },
     { label: "30-day expense volume", icon: Receipt, node: <CurrencyDisplay value={stats.volume} currency="INR" compact /> },
   ];
 

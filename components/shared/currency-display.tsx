@@ -13,10 +13,14 @@ interface CurrencyDisplayProps {
 
 export function CurrencyDisplay({
   value,
-  currency = "USD",
+  currency = "INR",
   compact = false,
   className,
 }: CurrencyDisplayProps) {
-  const text = compact ? formatCompactCurrency(value, currency) : formatCurrency(value, currency);
+  // Guard against NaN/undefined so amounts never render as "₹NaN".
+  const n = Number.isFinite(value) ? value : 0;
+  const text = compact
+    ? formatCompactCurrency(n, currency, "en-IN")
+    : formatCurrency(n, currency, "en-IN");
   return <span className={cn("tabular font-medium", className)}>{text}</span>;
 }

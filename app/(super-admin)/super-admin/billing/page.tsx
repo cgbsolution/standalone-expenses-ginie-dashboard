@@ -27,8 +27,8 @@ export default function BillingPage() {
   }, [tenants]);
 
   const kpis = [
-    { label: "MRR", icon: Wallet, node: <CurrencyDisplay value={stats.mrr} currency="USD" compact /> },
-    { label: "ARR (run-rate)", icon: TrendingUp, node: <CurrencyDisplay value={stats.arr} currency="USD" compact /> },
+    { label: "MRR", icon: Wallet, node: <CurrencyDisplay value={stats.mrr} currency="INR" compact /> },
+    { label: "ARR (run-rate)", icon: TrendingUp, node: <CurrencyDisplay value={stats.arr} currency="INR" compact /> },
     { label: "Active tenants", icon: CheckCircle2, node: <span>{stats.active}</span> },
     { label: "Churned", icon: Ban, node: <span>{stats.churned}</span> },
   ];
@@ -77,7 +77,7 @@ export default function BillingPage() {
                     <td className="px-4 py-2.5"><PlanBadge tier={t.plan} /></td>
                     <td className="px-4 py-2.5"><TenantStatusBadge status={t.status} /></td>
                     <td className="px-4 py-2.5 text-center text-muted-foreground">{t.userCount}</td>
-                    <td className="px-4 py-2.5 text-right"><CurrencyDisplay value={t.mrr || 0} currency="USD" /></td>
+                    <td className="px-4 py-2.5 text-right"><CurrencyDisplay value={t.mrr || 0} currency="INR" /></td>
                   </tr>
                 ))}
               </tbody>
