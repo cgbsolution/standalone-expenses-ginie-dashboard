@@ -7,6 +7,7 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatRelative } from "@/lib/format";
+import { expenseTotal } from "@/lib/expense";
 import type { MasterExpense } from "@/types/expense";
 import { useUpdateExpenseStatus } from "@/lib/hooks/use-expenses";
 
@@ -43,7 +44,7 @@ export function PendingApprovals({ expenses }: { expenses: MasterExpense[] }) {
                   {e.SubmitterName} · {formatRelative(e.SubmissionDate)}
                 </p>
               </div>
-              <CurrencyDisplay value={e.TotalAmount} className="text-sm" />
+              <CurrencyDisplay value={expenseTotal(e)} className="text-sm" />
               <div className="flex items-center gap-1">
                 <Button
                   size="icon-sm"

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, FileText, Loader2, Paperclip, CheckCircle2, Clock, XCircle, Circle } from "lucide-react";
+import { Check, X, FileText, Loader2, Paperclip, CheckCircle2, Clock, XCircle, Circle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { invoiceFiles, type AttachmentRef } from "@/lib/expense";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TieredAmount } from "@/components/admin/amount-tier";
@@ -112,16 +114,19 @@ export function ExpenseDetailDrawer({
   disabled?: boolean;
 }) {
   const [opening, setOpening] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; name: string; kind: "image" | "pdf" } | null>(null);
 
-  const openReceipt = async (raw: string, key: string) => {
+  // Sign the storage path, then show the file full-size in a popup.
+  const openPreview = async (att: AttachmentRef, key: string) => {
     setOpening(key);
     try {
-      let url = raw;
+      let url = att.path;
       if (!/^https?:\/\//i.test(url)) {
-        const { data } = await apiClient.get<{ url: string }>("/storage/sign", { params: { path: raw } });
+        const { data } = await apiClient.get<{ url: string }>("/storage/sign", { params: { path: att.path } });
         url = data.url;
       }
-      window.open(url, "_blank", "noopener");
+      const kind = /\.pdf(\?|$)/i.test(att.path) || /\.pdf$/i.test(att.name) ? "pdf" : "image";
+      setPreview({ url, name: att.name, kind });
     } catch {
       toast.error("Could not open the receipt.");
     } finally {
@@ -138,10 +143,17 @@ export function ExpenseDetailDrawer({
   }
 
   const items = Array.isArray(expense.ExpenseData) ? expense.ExpenseData : [];
-  const receipts = items.filter((inv) => inv.ReceiptUrl);
+  const receipts = items.flatMap((inv, i) =>
+    invoiceFiles(inv).map((att, j) => ({
+      key: `${inv.EMSUniqueId || i}-${j}`,
+      label: att.name !== "Receipt" ? att.name : inv.VendorName || `Receipt ${i + 1}`,
+      att,
+    })),
+  );
   const canDecide = !!onApprove && !!onReject && expense.ApprovalStatus === "Pending";
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
@@ -171,30 +183,33 @@ export function ExpenseDetailDrawer({
               Line items ({items.length})
             </p>
             <ul className="mt-2 space-y-2">
-              {items.map((inv) => (
-                <li key={inv.EMSUniqueId} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 p-3 text-xs">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{inv.VendorName ?? "Vendor"}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">
-                      {inv.InvoiceNumber ?? "—"} · {inv.Category ?? "Uncategorized"}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {inv.ReceiptUrl ? (
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        aria-label="View receipt"
-                        disabled={opening === inv.EMSUniqueId}
-                        onClick={() => openReceipt(inv.ReceiptUrl as string, inv.EMSUniqueId)}
-                      >
-                        {opening === inv.EMSUniqueId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                      </Button>
-                    ) : null}
-                    <TieredAmount amount={toAmount(inv.InvoiceAmount)} size="sm" />
-                  </div>
-                </li>
-              ))}
+              {items.map((inv) => {
+                const first = invoiceFiles(inv)[0];
+                return (
+                  <li key={inv.EMSUniqueId} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 p-3 text-xs">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{inv.VendorName ?? "Vendor"}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {inv.InvoiceNumber ?? "—"} · {inv.Category ?? "Uncategorized"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {first ? (
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          aria-label="Preview receipt"
+                          disabled={opening === inv.EMSUniqueId}
+                          onClick={() => openPreview(first, inv.EMSUniqueId)}
+                        >
+                          {opening === inv.EMSUniqueId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                        </Button>
+                      ) : null}
+                      <TieredAmount amount={toAmount(inv.InvoiceAmount)} size="sm" />
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : null}
@@ -205,17 +220,17 @@ export function ExpenseDetailDrawer({
           </p>
           {receipts.length > 0 ? (
             <ul className="mt-2 space-y-2">
-              {receipts.map((inv) => (
-                <li key={`r-${inv.EMSUniqueId}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 p-3 text-xs">
-                  <span className="truncate">{inv.VendorName || inv.InvoiceNumber || "Receipt"}</span>
+              {receipts.map((r) => (
+                <li key={`r-${r.key}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 p-3 text-xs">
+                  <span className="truncate">{r.label}</span>
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={opening === `att-${inv.EMSUniqueId}`}
-                    onClick={() => openReceipt(inv.ReceiptUrl as string, `att-${inv.EMSUniqueId}`)}
+                    disabled={opening === `att-${r.key}`}
+                    onClick={() => openPreview(r.att, `att-${r.key}`)}
                   >
-                    {opening === `att-${inv.EMSUniqueId}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                    View
+                    {opening === `att-${r.key}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                    Preview
                   </Button>
                 </li>
               ))}
@@ -254,6 +269,39 @@ export function ExpenseDetailDrawer({
         ) : null}
       </SheetContent>
     </Sheet>
+
+    {/* Full-size attachment preview */}
+    <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="truncate pr-8 text-sm">{preview?.name}</DialogTitle>
+        </DialogHeader>
+        {preview?.kind === "pdf" ? (
+          <iframe
+            src={preview.url}
+            title={preview.name}
+            className="h-[70vh] w-full rounded-lg border border-border bg-white"
+          />
+        ) : preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={preview.url}
+            alt={preview.name}
+            className="mx-auto max-h-[70vh] w-auto max-w-full rounded-lg object-contain"
+          />
+        ) : null}
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => preview && window.open(preview.url, "_blank", "noopener")}
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Open in new tab
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -1,98 +1,155 @@
 "use client";
 
+import { useMemo } from "react";
 import { CalendarDays, Plus, Receipt, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
-import { KPICard } from "@/components/shared/kpi-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useAdminDashboard } from "@/lib/hooks/use-dashboard";
 import { useApproverExpenses } from "@/lib/hooks/use-expenses";
-import { formatCompactCurrency, formatCompactNumber } from "@/lib/format";
+import { useCategories } from "@/lib/hooks/use-categories";
+import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { SpendingTrend } from "@/components/admin/spending-trend";
 import { CategoryDonut } from "@/components/admin/category-donut";
 import { BudgetProgress } from "@/components/admin/budget-progress";
 import { PendingApprovals } from "@/components/admin/pending-approvals";
 import { RecentExpenses } from "@/components/admin/recent-expenses";
 import { useAuthStore } from "@/stores/auth-store";
-
-const KPI_FORMATTERS = [
-  (n: number) => formatCompactCurrency(n),
-  (n: number) => formatCompactNumber(n),
-  (n: number) => formatCompactCurrency(n),
-  (n: number) => formatCompactCurrency(n),
-];
-const KPI_ICONS = [Receipt, ShieldCheck, TrendingUp, Sparkles];
-const KPI_ACCENTS = ["primary", "warning", "success", "violet"] as const;
+import { expenseTotal } from "@/lib/expense";
+import type { MasterExpense, Category } from "@/types/expense";
+import type { SpendTrendPoint } from "@/lib/mocks/dashboard";
 
 interface PageProps {
   params: { slug: string };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const PALETTE = ["#6366F1", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#64748B"];
+
+// Last 30 days of real submissions (spend) and approvals (reimbursed).
+function buildTrend(expenses: MasterExpense[]): SpendTrendPoint[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = today.getTime() - 29 * DAY_MS;
+  const days: SpendTrendPoint[] = Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(start + i * DAY_MS).toISOString(),
+    spend: 0,
+    reimbursed: 0,
+  }));
+  const bucket = (iso?: string) => {
+    if (!iso) return -1;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return -1;
+    d.setHours(0, 0, 0, 0);
+    return Math.floor((d.getTime() - start) / DAY_MS);
+  };
+  for (const e of expenses) {
+    const amt = expenseTotal(e);
+    const submitted = days[bucket(e.SubmissionDate)];
+    if (submitted) submitted.spend += amt;
+    const approved = days[bucket(e.ApprovedAt)];
+    if (approved) approved.reimbursed += amt;
+  }
+  return days;
+}
+
+// Real spend per category, merged with the configured category budgets.
+function buildCategories(expenses: MasterExpense[], defined: { id: string; name: string; color: string; icon: string; monthlyBudget: number }[]): Category[] {
+  const spent = new Map<string, number>();
+  for (const e of expenses) {
+    const name = e.ExpenseData?.[0]?.Category || "Uncategorised";
+    spent.set(name, (spent.get(name) || 0) + expenseTotal(e));
+  }
+  const out: Category[] = defined.map((c) => ({
+    id: c.id, name: c.name, color: c.color, icon: c.icon,
+    monthlyBudget: c.monthlyBudget, spent: spent.get(c.name) || 0,
+  }));
+  let i = 0;
+  for (const [name, amount] of spent) {
+    if (!defined.some((c) => c.name === name)) {
+      out.push({ id: name, name, color: PALETTE[(defined.length + i++) % PALETTE.length] ?? "#6366F1", icon: "folder", monthlyBudget: 0, spent: amount });
+    }
+  }
+  return out.sort((a, b) => b.spent - a.spent);
 }
 
 export default function TenantAdminDashboardPage({ params }: PageProps) {
   const { slug } = params;
   const userEmail = useAuthStore((s) => s.session?.user.email ?? "");
 
-  const { data, isLoading } = useAdminDashboard(slug);
-  const { data: expenses } = useApproverExpenses(userEmail);
+  const { data: expenses, isLoading } = useApproverExpenses(userEmail);
+  const { data: definedCategories } = useCategories(slug);
 
-  const pendingCount = (expenses ?? []).filter(
-    (e) => e.ApprovalStatus === "Pending",
-  ).length;
+  const stats = useMemo(() => {
+    const list = expenses ?? [];
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const thirtyAgo = Date.now() - 30 * DAY_MS;
+    const pending = list.filter((e) => e.ApprovalStatus === "Pending");
+    return {
+      pendingCount: pending.length,
+      pendingAmount: pending.reduce((s, e) => s + expenseTotal(e), 0),
+      monthVolume: list
+        .filter((e) => new Date(e.SubmissionDate).getTime() >= monthStart)
+        .reduce((s, e) => s + expenseTotal(e), 0),
+      approved30d: list
+        .filter((e) => e.ApprovalStatus === "Approved" && e.ApprovedAt && new Date(e.ApprovedAt).getTime() >= thirtyAgo)
+        .reduce((s, e) => s + expenseTotal(e), 0),
+      trend: buildTrend(list),
+      categories: buildCategories(list, definedCategories ?? []),
+    };
+  }, [expenses, definedCategories]);
+
+  const kpis = [
+    { label: "This month volume", icon: Receipt, node: <CurrencyDisplay value={stats.monthVolume} compact /> },
+    { label: "Pending approvals", icon: ShieldCheck, node: <span>{stats.pendingCount}</span> },
+    { label: "Pending amount", icon: Sparkles, node: <CurrencyDisplay value={stats.pendingAmount} compact /> },
+    { label: "Approved (30d)", icon: TrendingUp, node: <CurrencyDisplay value={stats.approved30d} compact /> },
+  ];
 
   return (
     <>
-      <WelcomeBanner slug={slug} pending={pendingCount} />
+      <WelcomeBanner slug={slug} pending={stats.pendingCount} />
 
       <PageHeader
         title="Dashboard"
         description="Track spend, approvals and reimbursements at a glance"
         actions={
-          <>
-            <Button variant="outline" size="sm">
-              <CalendarDays className="h-4 w-4" />
-              May 2026
-            </Button>
-            <Button size="sm">
-              <Plus className="h-4 w-4" />
-              New expense
-            </Button>
-          </>
+          <Button variant="outline" size="sm">
+            <CalendarDays className="h-4 w-4" />
+            {new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+          </Button>
         }
       />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
-          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)
-          : data?.kpis.map((k, i) => (
-              <KPICard
-                key={k.label}
-                label={k.label}
-                value={k.value}
-                deltaPct={k.deltaPct}
-                spark={k.spark}
-                format={KPI_FORMATTERS[i]}
-                icon={KPI_ICONS[i]}
-                accent={KPI_ACCENTS[i]}
-              />
+          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)
+          : kpis.map((k) => (
+              <div key={k.label} className="rounded-xl border border-border bg-card p-4">
+                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <k.icon className="h-4 w-4" /> {k.label}
+                </div>
+                <div className="text-xl font-semibold">{k.node}</div>
+              </div>
             ))}
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {isLoading || !data ? (
+        {isLoading ? (
           <>
             <Skeleton className="h-[340px] lg:col-span-2" />
             <Skeleton className="h-[340px]" />
           </>
         ) : (
           <>
-            <SpendingTrend data={data.spendTrend} />
-            <CategoryDonut categories={data.categories} />
+            <SpendingTrend data={stats.trend} />
+            <CategoryDonut categories={stats.categories} />
           </>
         )}
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {isLoading || !data ? (
+        {isLoading ? (
           <>
             <Skeleton className="h-[360px] lg:col-span-2" />
             <Skeleton className="h-[360px]" />
@@ -100,7 +157,7 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
         ) : (
           <>
             <div className="lg:col-span-2">
-              <BudgetProgress categories={data.categories} />
+              <BudgetProgress categories={stats.categories.filter((c) => c.monthlyBudget > 0)} />
             </div>
             <PendingApprovals expenses={expenses ?? []} />
           </>

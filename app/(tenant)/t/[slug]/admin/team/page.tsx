@@ -75,11 +75,18 @@ export default function TeamPage({ params }: PageProps) {
       {
         accessorKey: "managerEmail",
         header: "Manager",
-        cell: ({ row }) => (
-          <span className="text-[11px] text-muted-foreground">
-            {row.original.managerEmail ?? "—"}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const manager = row.original.managerEmail;
+          // A person can't be their own manager — hide self-references
+          // (bad seed data, e.g. board office accounts) instead of showing them.
+          const isSelf =
+            !!manager && manager.toLowerCase() === row.original.email.toLowerCase();
+          return (
+            <span className="text-[11px] text-muted-foreground">
+              {manager && !isSelf ? manager : "—"}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "employeeId",

@@ -7,6 +7,7 @@ import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatDate, formatRelative } from "@/lib/format";
+import { expenseTotal } from "@/lib/expense";
 import type { MasterExpense } from "@/types/expense";
 import Link from "next/link";
 
@@ -67,7 +68,7 @@ export function RecentExpenses({ expenses, slug }: Props) {
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <CurrencyDisplay value={e.TotalAmount} />
+                  <CurrencyDisplay value={expenseTotal(e)} />
                 </TableCell>
               </TableRow>
             ))}

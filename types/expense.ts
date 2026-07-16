@@ -13,6 +13,10 @@ export interface ExpenseInvoice {
   DocumentDate: string;
   SelfApprove: boolean;
   ReceiptUrl?: string;
+  /** Signed/storage URL set by some submission paths instead of File[]. */
+  SasUrl?: string;
+  /** Attachments as written by the mobile app / chatbot: [{ url, filename }]. */
+  File?: { url?: string; blob_url?: string; filename?: string }[];
   Description?: string;
 }
 

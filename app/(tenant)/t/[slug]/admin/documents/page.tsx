@@ -12,6 +12,7 @@ import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useMyExpenses } from "@/lib/hooks/use-expenses";
 import { useAuthStore } from "@/stores/auth-store";
+import { invoiceFiles } from "@/lib/expense";
 import apiClient from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
@@ -32,16 +33,18 @@ function buildDocs(expenses: MasterExpense[]): Doc[] {
   const docs: Doc[] = [];
   for (const exp of expenses) {
     (exp.ExpenseData ?? []).forEach((inv, i) => {
-      if (!inv.ReceiptUrl) return;
-      docs.push({
-        key: `${exp.id}-${i}`,
-        title: exp.ExpenseTitle,
-        vendor: inv.VendorName || inv.Category || "—",
-        amount: Number(inv.InvoiceAmount) || 0,
-        date: inv.DocumentDate || exp.SubmissionDate,
-        submitter: exp.SubmitterName || exp.SubmitterEmail,
-        status: exp.ApprovalStatus,
-        receiptUrl: inv.ReceiptUrl,
+      // Attachments live in File[] (mobile/chatbot) or ReceiptUrl/SasUrl (legacy).
+      invoiceFiles(inv).forEach((f, j) => {
+        docs.push({
+          key: `${exp.id}-${i}-${j}`,
+          title: exp.ExpenseTitle,
+          vendor: inv.VendorName || inv.Category || "—",
+          amount: Number(inv.InvoiceAmount) || 0,
+          date: inv.DocumentDate || exp.SubmissionDate,
+          submitter: exp.SubmitterName || exp.SubmitterEmail,
+          status: exp.ApprovalStatus,
+          receiptUrl: f.path,
+        });
       });
     });
   }
