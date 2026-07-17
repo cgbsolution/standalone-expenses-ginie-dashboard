@@ -36,6 +36,18 @@ export async function listAllExpenses(
   return data;
 }
 
+/** GET /master-expense/tenant?slug= — every expense in a tenant (admin view). */
+export async function listTenantExpenses(slug: string): Promise<MasterExpense[]> {
+  if (USE_MOCKS) {
+    await sleep(260);
+    return MOCK_EXPENSES;
+  }
+  const { data } = await apiClient.get<MasterExpense[]>("/master-expense/tenant", {
+    params: { slug },
+  });
+  return data;
+}
+
 /** GET /master-expense/approver?email= */
 export async function listApproverExpenses(email: string): Promise<MasterExpense[]> {
   if (USE_MOCKS) {

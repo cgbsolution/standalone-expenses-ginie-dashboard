@@ -25,7 +25,7 @@ import { TieredAmount } from "@/components/admin/amount-tier";
 import { isOverdue } from "@/components/admin/aging-indicator";
 import { StatusBadge } from "@/components/shared/status-badge";
 
-import { useApproverExpenses, useUpdateExpenseStatus } from "@/lib/hooks/use-expenses";
+import { useTenantExpenses, useUpdateExpenseStatus } from "@/lib/hooks/use-expenses";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -34,9 +34,10 @@ import type { ApprovalStatus, MasterExpense } from "@/types/expense";
 type StatusTab = "Pending" | "Approved" | "Rejected" | "All";
 type SortKey = "oldest" | "newest" | "amount-desc" | "amount-asc";
 
-export default function ApprovalsPage() {
+export default function ApprovalsPage({ params }: { params: { slug: string } }) {
   const userEmail = useAuthStore((s) => s.session?.user.email ?? "");
-  const { data: expenses, isLoading, error, refetch, isFetching } = useApproverExpenses(userEmail);
+  // Tenant-admin: every pending expense across the tenant, not just my own queue.
+  const { data: expenses, isLoading, error, refetch, isFetching } = useTenantExpenses(params.slug);
   const { mutateAsync, isPending } = useUpdateExpenseStatus();
 
   const [tab, setTab] = useState<StatusTab>("Pending");

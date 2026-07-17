@@ -11,16 +11,14 @@ import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ExpenseDetailDrawer } from "@/components/admin/expense-detail-drawer";
 import { Button } from "@/components/ui/button";
-import { useMyExpenses } from "@/lib/hooks/use-expenses";
-import { useAuthStore } from "@/stores/auth-store";
+import { useTenantExpenses } from "@/lib/hooks/use-expenses";
 import { formatDate, formatRelative, toAmount } from "@/lib/format";
 import { toast } from "sonner";
 import type { MasterExpense } from "@/types/expense";
 
-export default function ExpensesPage() {
-  // Each person sees only their OWN submissions — regardless of role.
-  const email = useAuthStore((s) => s.session?.user.email ?? "");
-  const { data: expenses, isLoading, error, refetch } = useMyExpenses(email);
+export default function ExpensesPage({ params }: { params: { slug: string } }) {
+  // Tenant-admin: every submission across all users in the tenant.
+  const { data: expenses, isLoading, error, refetch } = useTenantExpenses(params.slug);
   const [detailId, setDetailId] = useState<string | null>(null);
   const activeExpense = detailId ? (expenses ?? []).find((e) => e.id === detailId) ?? null : null;
 
@@ -96,7 +94,7 @@ export default function ExpensesPage() {
     <>
       <PageHeader
         title="Expenses"
-        description="Your expense submissions — filter, drill in, export"
+        description="Every submission across your team — filter, drill in, export"
         actions={
           <>
             <Button

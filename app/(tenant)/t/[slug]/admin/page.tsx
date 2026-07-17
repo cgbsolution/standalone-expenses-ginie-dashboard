@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PeriodFilter } from "@/components/shared/period-filter";
-import { useApproverExpenses } from "@/lib/hooks/use-expenses";
+import { useTenantExpenses } from "@/lib/hooks/use-expenses";
 import { useCategories } from "@/lib/hooks/use-categories";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { SpendingTrend } from "@/components/admin/spending-trend";
@@ -80,9 +80,9 @@ function buildCategories(expenses: MasterExpense[], defined: { id: string; name:
 
 export default function TenantAdminDashboardPage({ params }: PageProps) {
   const { slug } = params;
-  const userEmail = useAuthStore((s) => s.session?.user.email ?? "");
 
-  const { data: expenses, isLoading } = useApproverExpenses(userEmail);
+  // Tenant-admin view: every expense across all users in the tenant.
+  const { data: expenses, isLoading } = useTenantExpenses(slug);
   const { data: definedCategories } = useCategories(slug);
   const [period, setPeriod] = useState<Period>("this_month");
 

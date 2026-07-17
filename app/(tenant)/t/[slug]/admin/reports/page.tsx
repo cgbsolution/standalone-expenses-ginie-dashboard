@@ -10,8 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { useMyExpenses } from "@/lib/hooks/use-expenses";
-import { useAuthStore } from "@/stores/auth-store";
+import { useTenantExpenses } from "@/lib/hooks/use-expenses";
 import { formatDate, toAmount } from "@/lib/format";
 import type { MasterExpense } from "@/types/expense";
 
@@ -49,9 +48,8 @@ function toCsv(expenses: MasterExpense[]): string {
   return [head.map(esc).join(","), ...lines].join("\n");
 }
 
-export default function ReportsPage() {
-  const email = useAuthStore((s) => s.session?.user.email ?? "");
-  const { data: expenses, isLoading } = useMyExpenses(email);
+export default function ReportsPage({ params }: { params: { slug: string } }) {
+  const { data: expenses, isLoading } = useTenantExpenses(params.slug);
 
   const stats = useMemo(() => {
     const list = expenses ?? [];

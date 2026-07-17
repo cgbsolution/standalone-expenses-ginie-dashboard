@@ -9,8 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
-import { useMyExpenses } from "@/lib/hooks/use-expenses";
-import { useAuthStore } from "@/stores/auth-store";
+import { useTenantExpenses } from "@/lib/hooks/use-expenses";
 import { formatDate, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { MasterExpense } from "@/types/expense";
@@ -72,9 +71,8 @@ function dayBucket(iso: string): string {
   return formatDate(iso, "EEEE, MMM d");
 }
 
-export default function ActivityPage() {
-  const email = useAuthStore((s) => s.session?.user.email ?? "");
-  const { data: expenses, isLoading } = useMyExpenses(email);
+export default function ActivityPage({ params }: { params: { slug: string } }) {
+  const { data: expenses, isLoading } = useTenantExpenses(params.slug);
   const [q, setQ] = useState("");
 
   const grouped = useMemo(() => {

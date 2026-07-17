@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getExpenseCounts,
   listAllExpenses,
+  listTenantExpenses,
   listApproverExpenses,
   listExpenses,
   updateExpenseStatus,
@@ -29,6 +30,16 @@ export function useApproverExpenses(email: string) {
     queryFn: () => listApproverExpenses(email),
     staleTime: 30_000,
     enabled: !!email,
+  });
+}
+
+/** Every expense in a tenant — the tenant-admin's org-wide view. */
+export function useTenantExpenses(slug: string) {
+  return useQuery({
+    queryKey: ["expenses", "tenant", slug],
+    queryFn: () => listTenantExpenses(slug),
+    staleTime: 30_000,
+    enabled: !!slug,
   });
 }
 

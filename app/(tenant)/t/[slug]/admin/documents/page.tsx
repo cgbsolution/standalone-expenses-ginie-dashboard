@@ -10,8 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { useMyExpenses } from "@/lib/hooks/use-expenses";
-import { useAuthStore } from "@/stores/auth-store";
+import { useTenantExpenses } from "@/lib/hooks/use-expenses";
 import { invoiceFiles } from "@/lib/expense";
 import apiClient from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
@@ -51,9 +50,8 @@ function buildDocs(expenses: MasterExpense[]): Doc[] {
   return docs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export default function DocumentsPage() {
-  const email = useAuthStore((s) => s.session?.user.email ?? "");
-  const { data: expenses, isLoading } = useMyExpenses(email);
+export default function DocumentsPage({ params }: { params: { slug: string } }) {
+  const { data: expenses, isLoading } = useTenantExpenses(params.slug);
   const [q, setQ] = useState("");
   const [opening, setOpening] = useState<string | null>(null);
 

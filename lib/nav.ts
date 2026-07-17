@@ -12,7 +12,6 @@ import {
   Receipt,
   ScrollText,
   Settings,
-  ShieldCheck,
   Users,
   Wallet,
   Workflow,
@@ -64,9 +63,9 @@ export function adminNav(slug: string): NavSection[] {
     {
       label: "Overview",
       items: [
+        // Expenses & Approvals are surfaced within the Dashboard for the tenant
+        // admin (tenant-wide stats), so they're intentionally omitted from the nav.
         { label: "Dashboard", href: base, icon: LayoutDashboard },
-        { label: "Expenses", href: `${base}/expenses`, icon: Receipt },
-        { label: "Approvals", href: `${base}/approvals`, icon: ShieldCheck },
       ],
     },
     {

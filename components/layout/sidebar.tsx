@@ -7,8 +7,6 @@ import { ChevronLeft, ChevronRight, Settings, Sparkles } from "lucide-react";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { navForRole, type NavSection } from "@/lib/nav";
-import { useExpenseCounts } from "@/lib/hooks/use-expenses";
-import type { Role } from "@/types/auth";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { UserAvatar } from "@/components/shared/user-avatar";
@@ -24,18 +22,12 @@ export function Sidebar({ className }: SidebarProps) {
   const toggle = useSidebarStore((s) => s.toggle);
   const session = useAuthStore((s) => s.session);
   const pathname = usePathname();
-  // Real pending-approval count for the Approvals badge (empty until email loads).
-  const { data: counts } = useExpenseCounts(session?.user?.email ?? "", "approver");
 
   const user = session?.user;
   if (!user) return null;
 
   const slug = user.tenantSlug ?? "";
-  const sections = withApprovalBadge(
-    navForRole(user.role, slug),
-    user.role,
-    counts?.pending ?? 0,
-  );
+  const sections = navForRole(user.role, slug);
 
   return (
     <aside
@@ -64,24 +56,6 @@ export function Sidebar({ className }: SidebarProps) {
       </button>
     </aside>
   );
-}
-
-// Inject the live pending-approval count into the admin "Approvals" nav item.
-// Only admins have that item; other roles pass through unchanged.
-function withApprovalBadge(
-  sections: NavSection[],
-  role: Role,
-  pending: number,
-): NavSection[] {
-  if (role !== "admin") return sections;
-  return sections.map((section) => ({
-    ...section,
-    items: section.items.map((item) =>
-      item.label === "Approvals"
-        ? { ...item, badge: pending > 0 ? String(pending) : undefined }
-        : item,
-    ),
-  }));
 }
 
 function SidebarHeader({ collapsed }: { collapsed: boolean }) {
