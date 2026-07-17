@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Receipt, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Receipt, ShieldCheck, Sparkles, TrendingUp, FileDown, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,6 @@ import { useCategories } from "@/lib/hooks/use-categories";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { SpendingTrend } from "@/components/admin/spending-trend";
 import { CategoryDonut } from "@/components/admin/category-donut";
-import { BudgetProgress } from "@/components/admin/budget-progress";
-import { PendingApprovals } from "@/components/admin/pending-approvals";
 import { RecentExpenses } from "@/components/admin/recent-expenses";
 import { useAuthStore } from "@/stores/auth-store";
 import { expenseTotal } from "@/lib/expense";
@@ -85,33 +84,73 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
   const { data: expenses, isLoading } = useTenantExpenses(slug);
   const { data: definedCategories } = useCategories(slug);
   const [period, setPeriod] = useState<Period>("this_month");
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const stats = useMemo(() => {
     const list = expenses ?? [];
     const range = periodRange(period);
-    // Submitted within the selected period → drives volume, trend, categories.
+    // Everything is scoped to the selected period, including pending.
     const inPeriod = list.filter((e) => inRange(e.SubmissionDate, range));
-    // Pending is a LIVE queue (period-independent) so it always matches the
-    // banner and the "Pending approvals" card below.
-    const pending = list.filter((e) => e.ApprovalStatus === "Pending");
+    const pending = inPeriod.filter((e) => e.ApprovalStatus === "Pending");
     return {
       periodLabel: range.label,
       pendingCount: pending.length,
       pendingAmount: pending.reduce((s, e) => s + expenseTotal(e), 0),
       volume: inPeriod.reduce((s, e) => s + expenseTotal(e), 0),
-      approved: list
-        .filter((e) => e.ApprovalStatus === "Approved" && inRange(e.ApprovedAt, range))
+      approved: inPeriod
+        .filter((e) => e.ApprovalStatus === "Approved")
         .reduce((s, e) => s + expenseTotal(e), 0),
       trend: buildTrend(list, range),
       categories: buildCategories(inPeriod, definedCategories ?? []),
     };
   }, [expenses, definedCategories, period]);
 
+  // Snapshot the current dashboard (cards + charts) into a paginated A4 PDF.
+  async function downloadPdf() {
+    const node = reportRef.current;
+    if (!node) return;
+    setExporting(true);
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+      });
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const img = canvas.toDataURL("image/png");
+      let heightLeft = imgH;
+      let pos = 0;
+      pdf.addImage(img, "PNG", 0, pos, imgW, imgH);
+      heightLeft -= pageH;
+      while (heightLeft > 0) {
+        pos -= pageH;
+        pdf.addPage();
+        pdf.addImage(img, "PNG", 0, pos, imgW, imgH);
+        heightLeft -= pageH;
+      }
+      pdf.save(`${slug}-dashboard-${period}.pdf`);
+    } catch {
+      toast.error("Could not generate the PDF.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const p = stats.periodLabel;
   const kpis = [
-    { label: `Volume · ${stats.periodLabel}`, icon: Receipt, node: <CurrencyDisplay value={stats.volume} compact /> },
-    { label: "Pending approvals", icon: ShieldCheck, node: <span>{stats.pendingCount}</span> },
-    { label: "Pending amount", icon: Sparkles, node: <CurrencyDisplay value={stats.pendingAmount} compact /> },
-    { label: `Approved · ${stats.periodLabel}`, icon: TrendingUp, node: <CurrencyDisplay value={stats.approved} compact /> },
+    { label: `Volume · ${p}`, icon: Receipt, node: <CurrencyDisplay value={stats.volume} compact /> },
+    { label: `Pending · ${p}`, icon: ShieldCheck, node: <span>{stats.pendingCount}</span> },
+    { label: `Pending amount · ${p}`, icon: Sparkles, node: <CurrencyDisplay value={stats.pendingAmount} compact /> },
+    { label: `Approved · ${p}`, icon: TrendingUp, node: <CurrencyDisplay value={stats.approved} compact /> },
   ];
 
   return (
@@ -121,55 +160,49 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
       <PageHeader
         title="Dashboard"
         description="Track spend, approvals and reimbursements at a glance"
-        actions={<PeriodFilter value={period} onChange={setPeriod} />}
+        actions={
+          <>
+            <PeriodFilter value={period} onChange={setPeriod} />
+            <Button variant="outline" size="sm" onClick={downloadPdf} disabled={exporting || isLoading}>
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              Download PDF
+            </Button>
+          </>
+        }
       />
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {isLoading
-          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)
-          : kpis.map((k) => (
-              <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  <k.icon className="h-4 w-4" /> {k.label}
+      <div ref={reportRef} className="space-y-6 bg-background">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)
+            : kpis.map((k) => (
+                <div key={k.label} className="rounded-xl border border-border bg-card p-4">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <k.icon className="h-4 w-4" /> {k.label}
+                  </div>
+                  <div className="text-xl font-semibold">{k.node}</div>
                 </div>
-                <div className="text-xl font-semibold">{k.node}</div>
-              </div>
-            ))}
-      </section>
+              ))}
+        </section>
 
-      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-[340px] lg:col-span-2" />
-            <Skeleton className="h-[340px]" />
-          </>
-        ) : (
-          <>
-            <SpendingTrend data={stats.trend} />
-            <CategoryDonut categories={stats.categories} subtitle={stats.periodLabel} />
-          </>
-        )}
-      </section>
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {isLoading ? (
+            <>
+              <Skeleton className="h-[340px] lg:col-span-2" />
+              <Skeleton className="h-[340px]" />
+            </>
+          ) : (
+            <>
+              <SpendingTrend data={stats.trend} />
+              <CategoryDonut categories={stats.categories} subtitle={stats.periodLabel} />
+            </>
+          )}
+        </section>
 
-      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-[360px] lg:col-span-2" />
-            <Skeleton className="h-[360px]" />
-          </>
-        ) : (
-          <>
-            <div className="lg:col-span-2">
-              <BudgetProgress categories={stats.categories.filter((c) => c.monthlyBudget > 0)} />
-            </div>
-            <PendingApprovals expenses={expenses ?? []} />
-          </>
-        )}
-      </section>
-
-      <section className="mt-6">
-        <RecentExpenses expenses={expenses ?? []} slug={slug} />
-      </section>
+        <section>
+          <RecentExpenses expenses={expenses ?? []} slug={slug} />
+        </section>
+      </div>
     </>
   );
 }

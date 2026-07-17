@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Download, Plus, Eye } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
@@ -96,23 +96,14 @@ export default function ExpensesPage({ params }: { params: { slug: string } }) {
         title="Expenses"
         description="Every submission across your team — filter, drill in, export"
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toast.info("CSV export not wired yet")}
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => toast.info("New expense form not wired yet — submit via mobile for now")}
-            >
-              <Plus className="h-4 w-4" />
-              New expense
-            </Button>
-          </>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => toast.info("CSV export not wired yet")}
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
         }
       />
 

@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, FileEdit, XCircle, type LucideIcon } from "lucide-react";
 import type { ApprovalStatus } from "@/types/expense";
 import type { TenantStatus } from "@/types/tenant";
+import { normalizeStatus, statusLabel } from "@/lib/status";
 
 const expenseConfig: Record<
   ApprovalStatus,
@@ -23,19 +24,21 @@ const tenantConfig: Record<
   churned: { variant: "muted", label: "Churned" },
 };
 
-export function StatusBadge({ status }: { status: ApprovalStatus }) {
-  const { variant, icon: Icon } = expenseConfig[status];
+// Accepts any string — non-standard backend statuses (e.g. "PendingFinance")
+// are normalized so this can never crash on an unknown value.
+export function StatusBadge({ status }: { status: ApprovalStatus | string }) {
+  const { variant, icon: Icon } = expenseConfig[normalizeStatus(status)];
   return (
     <Badge variant={variant} className="gap-1.5 py-1">
       <Icon className="h-3 w-3" />
-      {status}
+      {statusLabel(status)}
     </Badge>
   );
 }
 
 export function TenantStatusBadge({ status }: { status: TenantStatus }) {
-  const { variant, label } = tenantConfig[status];
-  return <Badge variant={variant}>{label}</Badge>;
+  const cfg = tenantConfig[status] ?? tenantConfig.active;
+  return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
 export function PlanBadge({

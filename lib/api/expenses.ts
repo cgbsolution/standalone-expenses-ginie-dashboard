@@ -2,7 +2,16 @@ import apiClient from "./client";
 import { USE_MOCKS } from "@/lib/constants";
 import { MOCK_COUNTS, MOCK_EXPENSES } from "@/lib/mocks/expenses";
 import { sleep } from "@/lib/utils";
+import { normalizeStatus } from "@/lib/status";
 import type { ApprovalStatus, ExpenseCounts, MasterExpense } from "@/types/expense";
+
+// Collapse non-standard backend statuses (e.g. the chatbot's "PendingFinance")
+// into the 4 canonical ones so every downstream count/filter/badge behaves.
+function normalizeList(list: MasterExpense[]): MasterExpense[] {
+  return Array.isArray(list)
+    ? list.map((e) => ({ ...e, ApprovalStatus: normalizeStatus(e.ApprovalStatus) }))
+    : [];
+}
 
 export interface ListExpensesParams {
   email: string;
@@ -18,7 +27,7 @@ export async function listExpenses(params: ListExpensesParams): Promise<MasterEx
     return MOCK_EXPENSES.filter((e) => e.ApprovalStatus === status);
   }
   const { data } = await apiClient.get<MasterExpense[]>("/master-expense", { params });
-  return data;
+  return normalizeList(data);
 }
 
 /** GET /master-expense/all?status= — team-wide admin view (every submission). */
@@ -33,7 +42,7 @@ export async function listAllExpenses(
   const { data } = await apiClient.get<MasterExpense[]>("/master-expense/all", {
     params: approvalStatus && approvalStatus !== "All" ? { status: approvalStatus } : undefined,
   });
-  return data;
+  return normalizeList(data);
 }
 
 /** GET /master-expense/tenant?slug= — every expense in a tenant (admin view). */
@@ -45,7 +54,7 @@ export async function listTenantExpenses(slug: string): Promise<MasterExpense[]>
   const { data } = await apiClient.get<MasterExpense[]>("/master-expense/tenant", {
     params: { slug },
   });
-  return data;
+  return normalizeList(data);
 }
 
 /** GET /master-expense/approver?email= */
@@ -57,7 +66,7 @@ export async function listApproverExpenses(email: string): Promise<MasterExpense
   const { data } = await apiClient.get<MasterExpense[]>("/master-expense/approver", {
     params: { email },
   });
-  return data;
+  return normalizeList(data);
 }
 
 /** GET /master-expense/counts?email=&role= */

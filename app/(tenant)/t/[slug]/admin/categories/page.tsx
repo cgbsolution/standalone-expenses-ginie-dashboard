@@ -94,11 +94,20 @@ export default function CategoriesPage({ params }: PageProps) {
       ) : (
         <div className="space-y-2">
           {categories.map((c) => (
-            <div key={c.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card p-4">
+            <div key={c.id} className={cn("flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card p-4", !c.enabled && "opacity-60")}>
               <span className="h-8 w-8 shrink-0 rounded-lg" style={{ backgroundColor: c.color }} />
-              <div className="min-w-32 flex-1">
-                <p className="font-medium">{c.name}</p>
-                {c.glAccount ? <p className="text-xs text-muted-foreground">GL {c.glAccount}</p> : null}
+              <div className="min-w-40 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="font-medium">{c.name}</p>
+                  {!c.enabled ? <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Disabled</span> : null}
+                  {c.requiresBill ? <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">Bill required</span> : <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">No bill</span>}
+                  {c.excludedFromAutoApprove ? <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">Manual approval</span> : null}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {c.glAccount ? <>GL {c.glAccount}</> : null}
+                  {c.glProject ? <> · Proj {c.glProject}</> : null}
+                  {c.glCrm ? <> · CRM {c.glCrm}</> : null}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <Label htmlFor={`b-${c.id}`} className="text-xs text-muted-foreground">Budget ₹</Label>

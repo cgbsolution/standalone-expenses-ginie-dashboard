@@ -13,9 +13,100 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRules, useCreateRule, useUpdateRule, useDeleteRule } from "@/lib/hooks/use-rules";
+import { useMasterConfig } from "@/lib/hooks/use-master-config";
 import type { RuleAction, ApprovalRule } from "@/lib/api/rules";
+import type { PolicyRule } from "@/lib/api/master-config";
 import { apiErrorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+
+function ruleEffect(r: PolicyRule): string {
+  const p = (r.params || {}) as Record<string, string>;
+  if (r.ruleType === "default_value") return `${p.field} → ${p.value}`;
+  if (r.ruleType === "id_prefix") return `${p.field} prefixed "${p.value}"`;
+  if (r.ruleType === "timezone") return String(p.value);
+  if (r.ruleType === "actuals_or_cap") return `lower of ${p.amount_field} & ${p.cap_field}`;
+  return JSON.stringify(p);
+}
+
+function PolicyReference({ slug }: { slug: string }) {
+  const { data, isLoading } = useMasterConfig(slug);
+  if (isLoading) return <Skeleton className="mb-8 h-48" />;
+  if (!data || (!data.rules.length && !data.policyCaps.length)) return null;
+
+  const caps = [...data.policyCaps].sort(
+    (a, b) => a.normalized.localeCompare(b.normalized) || a.capAmount - b.capAmount,
+  );
+
+  return (
+    <div className="mb-8 space-y-6">
+      <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+        Defined in the company master sheet and enforced by the ExpGenie assistant during submission. Shown here for reference.
+      </div>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold">Policy &amp; output rules</h3>
+        <div className="overflow-hidden rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-2.5 font-medium">Rule</th>
+                <th className="px-4 py-2.5 font-medium">Group</th>
+                <th className="px-4 py-2.5 font-medium">Effect</th>
+                <th className="px-4 py-2.5 text-center font-medium">Priority</th>
+                <th className="px-4 py-2.5 text-center font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.rules.map((r) => (
+                <tr key={r.ruleId} className="border-t border-border/60">
+                  <td className="px-4 py-2.5 font-mono text-xs">{r.ruleId}</td>
+                  <td className="px-4 py-2.5"><Badge variant="secondary">{r.ruleGroup}</Badge></td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{ruleEffect(r)}</td>
+                  <td className="px-4 py-2.5 text-center text-muted-foreground">{r.priority}</td>
+                  <td className="px-4 py-2.5 text-center">
+                    <span className={cn("text-xs font-medium", r.enabled ? "text-emerald-600" : "text-muted-foreground")}>
+                      {r.enabled ? "Enabled" : "Off"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {caps.length > 0 ? (
+        <section>
+          <h3 className="mb-2 text-sm font-semibold">Reimbursement caps by grade</h3>
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Category</th>
+                  <th className="px-4 py-2.5 font-medium">Grade</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Cap</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Self-approve</th>
+                </tr>
+              </thead>
+              <tbody>
+                {caps.map((c, i) => (
+                  <tr key={`${c.normalized}-${c.grade}-${i}`} className="border-t border-border/60">
+                    <td className="px-4 py-2 text-xs">{c.normalized}</td>
+                    <td className="px-4 py-2 font-mono text-xs">{c.grade}</td>
+                    <td className="px-4 py-2 text-right">
+                      {c.isActuals ? <span className="text-muted-foreground">Actuals</span> : `₹${c.capAmount.toLocaleString("en-IN")}`}
+                    </td>
+                    <td className="px-4 py-2 text-center">{c.selfApprove ? "Yes" : "No"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
 
 interface PageProps {
   params: { slug: string };
@@ -71,10 +162,13 @@ export default function ApprovalRulesPage({ params }: PageProps) {
       <Link href={`/t/${slug}/admin/approvals`} className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-3 w-3" /> Approvals
       </Link>
-      <PageHeader title="Approval rules" description="Route or auto-decide expenses by amount, category, and grade" />
+      <PageHeader title="Rules & policy" description="Company policy the assistant enforces, plus any custom approval rules" />
 
+      <PolicyReference slug={slug} />
+
+      <h3 className="mb-2 text-sm font-semibold">Custom approval rules</h3>
       <div className="mb-4 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-        Rules are saved and evaluated top-to-bottom by priority. Live enforcement in the approval workflow activates once the rules engine is switched on.
+        Saved and evaluated top-to-bottom by priority. Live enforcement in the approval workflow activates once the rules engine is switched on.
       </div>
 
       <div className="mb-6 rounded-xl border border-border bg-card p-4">

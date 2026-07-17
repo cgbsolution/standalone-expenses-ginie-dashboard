@@ -133,19 +133,19 @@ function LoginForm() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => quickFill("info@cgbindia.com")}
+            onClick={() => quickFill("meera.joshi@xeltrion.com")}
             className="justify-start text-xs"
           >
-            Super Admin
+            Admin
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => quickFill("meera.joshi@xeltrion.com")}
+            onClick={() => quickFill("anaya.khanna@xeltrion.com")}
             className="justify-start text-xs"
           >
-            Tenant Admin
+            User
           </Button>
         </div>
       </div>

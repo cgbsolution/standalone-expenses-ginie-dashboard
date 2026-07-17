@@ -10,6 +10,13 @@ export interface ExpenseCategory {
   icon: string;
   monthlyBudget: number;
   glAccount: string;
+  // Master-sheet attributes (bot-enforced, dashboard-displayed).
+  normalized: string;
+  requiresBill: boolean;
+  excludedFromAutoApprove: boolean;
+  enabled: boolean;
+  glProject: string;
+  glCrm: string;
   createdAt: string;
 }
 
