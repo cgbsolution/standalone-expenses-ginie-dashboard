@@ -26,6 +26,8 @@ export type CategoryInput = {
   icon?: string;
   monthlyBudget?: number;
   glAccount?: string;
+  glProject?: string;
+  glCrm?: string;
 };
 
 export async function listCategories(slug: string): Promise<ExpenseCategory[]> {

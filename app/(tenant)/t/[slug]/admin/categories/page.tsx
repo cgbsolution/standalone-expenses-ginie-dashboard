@@ -36,13 +36,22 @@ export default function CategoriesPage({ params }: PageProps) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(SWATCHES[0]);
   const [budget, setBudget] = useState("");
-  const [gl, setGl] = useState("");
+  const [glCorp, setGlCorp] = useState("");
+  const [glProject, setGlProject] = useState("");
+  const [glCrm, setGlCrm] = useState("");
 
   const add = async () => {
     if (!name.trim()) return;
     try {
-      await create.mutateAsync({ name: name.trim(), color, monthlyBudget: Number(budget) || 0, glAccount: gl.trim() });
-      setName(""); setBudget(""); setGl(""); setColor(SWATCHES[0]);
+      await create.mutateAsync({
+        name: name.trim(),
+        color,
+        monthlyBudget: Number(budget) || 0,
+        glAccount: glCorp.trim(),
+        glProject: glProject.trim(),
+        glCrm: glCrm.trim(),
+      });
+      setName(""); setBudget(""); setGlCorp(""); setGlProject(""); setGlCrm(""); setColor(SWATCHES[0]);
       toast.success("Category added");
     } catch (e) {
       toast.error(apiErrorMessage(e));
@@ -55,7 +64,7 @@ export default function CategoriesPage({ params }: PageProps) {
 
       <div className="mb-6 rounded-xl border border-border bg-card p-4">
         <p className="mb-3 text-sm font-medium">Add a category</p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="c-name">Name</Label>
             <Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Travel" />
@@ -65,18 +74,26 @@ export default function CategoriesPage({ params }: PageProps) {
             <Input id="c-budget" inputMode="numeric" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="c-gl">GL account</Label>
-            <Input id="c-gl" value={gl} onChange={(e) => setGl(e.target.value)} placeholder="400100" />
-          </div>
-          <div className="space-y-1.5">
             <Label>Colour</Label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
               {SWATCHES.map((s) => (
                 <button key={s} type="button" onClick={() => setColor(s)}
                   className={cn("h-6 w-6 rounded-full ring-offset-2 ring-offset-background", color === s && "ring-2 ring-foreground")}
                   style={{ backgroundColor: s }} aria-label={s} />
               ))}
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="c-gl-corp">Corporate GL</Label>
+            <Input id="c-gl-corp" value={glCorp} onChange={(e) => setGlCorp(e.target.value)} placeholder="40203007" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="c-gl-proj">Project / Marketing-Sales GL</Label>
+            <Input id="c-gl-proj" value={glProject} onChange={(e) => setGlProject(e.target.value)} placeholder="40400003" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="c-gl-crm">CRM GL</Label>
+            <Input id="c-gl-crm" value={glCrm} onChange={(e) => setGlCrm(e.target.value)} placeholder="40400004" />
           </div>
         </div>
         <div className="mt-4 flex justify-end">
