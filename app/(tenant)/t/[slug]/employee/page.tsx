@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, Clock, Receipt, Wallet } from "lucide-react";
 import {
   Area,
@@ -25,6 +25,8 @@ import { useMyExpenses } from "@/lib/hooks/use-expenses";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatCompactCurrency, formatCompactNumber, formatDate, formatRelative } from "@/lib/format";
 import { expenseTotal } from "@/lib/expense";
+import { PeriodFilter } from "@/components/shared/period-filter";
+import { periodRange, inRange, type Period, type Range } from "@/lib/period";
 import type { MasterExpense } from "@/types/expense";
 
 interface PageProps {
@@ -36,8 +38,9 @@ export default function EmployeeDashboardPage({ params }: PageProps) {
   const user = useAuthStore((s) => s.session?.user);
   const userEmail = user?.email ?? "";
   const { data: expenses, isLoading } = useMyExpenses(userEmail);
+  const [period, setPeriod] = useState<Period>("this_month");
 
-  const stats = useMemo(() => deriveStats(expenses ?? []), [expenses]);
+  const stats = useMemo(() => deriveStats(expenses ?? [], periodRange(period)), [expenses, period]);
   const monthSeries = useMemo(() => buildMonthlySeries(expenses ?? []), [expenses]);
 
   return (
@@ -48,12 +51,15 @@ export default function EmployeeDashboardPage({ params }: PageProps) {
         title="My dashboard"
         description="Track your submissions, approvals, and reimbursements in one place"
         actions={
-          <Button asChild size="sm">
-            <Link href={`/t/${slug}/employee/expenses`}>
-              <Receipt className="h-4 w-4" />
-              See all expenses
-            </Link>
-          </Button>
+          <>
+            <PeriodFilter value={period} onChange={setPeriod} />
+            <Button asChild size="sm">
+              <Link href={`/t/${slug}/employee/expenses`}>
+                <Receipt className="h-4 w-4" />
+                See all expenses
+              </Link>
+            </Button>
+          </>
         }
       />
 
@@ -63,8 +69,8 @@ export default function EmployeeDashboardPage({ params }: PageProps) {
         ) : (
           <>
             <KPICard
-              label="This Month Spend"
-              value={stats.monthSpend}
+              label={`Spend · ${stats.periodLabel}`}
+              value={stats.volume}
               format={(n) => formatCompactCurrency(n)}
               icon={Receipt}
               accent="primary"
@@ -77,15 +83,15 @@ export default function EmployeeDashboardPage({ params }: PageProps) {
               accent="warning"
             />
             <KPICard
-              label="Approved"
-              value={stats.approved}
+              label={`Approved · ${stats.periodLabel}`}
+              value={stats.approvedCount}
               format={(n) => formatCompactNumber(n)}
               icon={CheckCircle2}
               accent="success"
             />
             <KPICard
-              label="Reimbursed (30d)"
-              value={stats.reimbursed30d}
+              label={`Reimbursed · ${stats.periodLabel}`}
+              value={stats.approvedAmount}
               format={(n) => formatCompactCurrency(n)}
               icon={Wallet}
               accent="violet"
@@ -250,27 +256,21 @@ function RecentSubmissions({
   );
 }
 
-function deriveStats(expenses: MasterExpense[]) {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const thirtyDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * 30;
-
-  let monthSpend = 0;
-  let pending = 0;
-  let approved = 0;
-  let reimbursed30d = 0;
+function deriveStats(expenses: MasterExpense[], range: Range) {
+  let volume = 0;
+  let pending = 0; // live: currently pending, period-independent
+  let approvedCount = 0;
+  let approvedAmount = 0;
 
   for (const e of expenses) {
-    const submittedAt = new Date(e.SubmissionDate).getTime();
-    if (submittedAt >= monthStart) monthSpend += expenseTotal(e);
+    if (inRange(e.SubmissionDate, range)) volume += expenseTotal(e);
     if (e.ApprovalStatus === "Pending") pending += 1;
-    if (e.ApprovalStatus === "Approved") {
-      approved += 1;
-      const approvedAt = e.ApprovedAt ? new Date(e.ApprovedAt).getTime() : submittedAt;
-      if (approvedAt >= thirtyDaysAgo) reimbursed30d += expenseTotal(e);
+    if (e.ApprovalStatus === "Approved" && inRange(e.ApprovedAt || e.SubmissionDate, range)) {
+      approvedCount += 1;
+      approvedAmount += expenseTotal(e);
     }
   }
-  return { monthSpend, pending, approved, reimbursed30d };
+  return { periodLabel: range.label, volume, pending, approvedCount, approvedAmount };
 }
 
 function buildMonthlySeries(expenses: MasterExpense[]): { month: string; spend: number }[] {

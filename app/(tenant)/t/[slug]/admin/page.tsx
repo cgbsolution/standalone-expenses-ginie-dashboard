@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
-import { CalendarDays, Plus, Receipt, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Receipt, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { PeriodFilter } from "@/components/shared/period-filter";
 import { useApproverExpenses } from "@/lib/hooks/use-expenses";
 import { useCategories } from "@/lib/hooks/use-categories";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
@@ -15,6 +16,7 @@ import { PendingApprovals } from "@/components/admin/pending-approvals";
 import { RecentExpenses } from "@/components/admin/recent-expenses";
 import { useAuthStore } from "@/stores/auth-store";
 import { expenseTotal } from "@/lib/expense";
+import { periodRange, rangeBounds, inRange, type Period, type Range } from "@/lib/period";
 import type { MasterExpense, Category } from "@/types/expense";
 import type { SpendTrendPoint } from "@/lib/mocks/dashboard";
 
@@ -25,13 +27,17 @@ interface PageProps {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PALETTE = ["#6366F1", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#64748B"];
 
-// Last 30 days of real submissions (spend) and approvals (reimbursed).
-function buildTrend(expenses: MasterExpense[]): SpendTrendPoint[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const start = today.getTime() - 29 * DAY_MS;
-  const days: SpendTrendPoint[] = Array.from({ length: 30 }, (_, i) => ({
-    date: new Date(start + i * DAY_MS).toISOString(),
+// Daily submissions (spend) + approvals (reimbursed) across the selected range,
+// capped at ~180 daily points for readability.
+function buildTrend(expenses: MasterExpense[], range: Range): SpendTrendPoint[] {
+  const { startMs, endMs } = rangeBounds(range);
+  const startDay = new Date(startMs); startDay.setHours(0, 0, 0, 0);
+  const endDay = new Date(endMs); endDay.setHours(0, 0, 0, 0);
+  let count = Math.floor((endDay.getTime() - startDay.getTime()) / DAY_MS) + 1;
+  count = Math.max(1, Math.min(count, 180));
+  const first = endDay.getTime() - (count - 1) * DAY_MS;
+  const days: SpendTrendPoint[] = Array.from({ length: count }, (_, i) => ({
+    date: new Date(first + i * DAY_MS).toISOString(),
     spend: 0,
     reimbursed: 0,
   }));
@@ -40,7 +46,7 @@ function buildTrend(expenses: MasterExpense[]): SpendTrendPoint[] {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return -1;
     d.setHours(0, 0, 0, 0);
-    return Math.floor((d.getTime() - start) / DAY_MS);
+    return Math.floor((d.getTime() - first) / DAY_MS);
   };
   for (const e of expenses) {
     const amt = expenseTotal(e);
@@ -78,32 +84,34 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
 
   const { data: expenses, isLoading } = useApproverExpenses(userEmail);
   const { data: definedCategories } = useCategories(slug);
+  const [period, setPeriod] = useState<Period>("this_month");
 
   const stats = useMemo(() => {
     const list = expenses ?? [];
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const thirtyAgo = Date.now() - 30 * DAY_MS;
+    const range = periodRange(period);
+    // Submitted within the selected period → drives volume, trend, categories.
+    const inPeriod = list.filter((e) => inRange(e.SubmissionDate, range));
+    // Pending is a LIVE queue (period-independent) so it always matches the
+    // banner and the "Pending approvals" card below.
     const pending = list.filter((e) => e.ApprovalStatus === "Pending");
     return {
+      periodLabel: range.label,
       pendingCount: pending.length,
       pendingAmount: pending.reduce((s, e) => s + expenseTotal(e), 0),
-      monthVolume: list
-        .filter((e) => new Date(e.SubmissionDate).getTime() >= monthStart)
+      volume: inPeriod.reduce((s, e) => s + expenseTotal(e), 0),
+      approved: list
+        .filter((e) => e.ApprovalStatus === "Approved" && inRange(e.ApprovedAt, range))
         .reduce((s, e) => s + expenseTotal(e), 0),
-      approved30d: list
-        .filter((e) => e.ApprovalStatus === "Approved" && e.ApprovedAt && new Date(e.ApprovedAt).getTime() >= thirtyAgo)
-        .reduce((s, e) => s + expenseTotal(e), 0),
-      trend: buildTrend(list),
-      categories: buildCategories(list, definedCategories ?? []),
+      trend: buildTrend(list, range),
+      categories: buildCategories(inPeriod, definedCategories ?? []),
     };
-  }, [expenses, definedCategories]);
+  }, [expenses, definedCategories, period]);
 
   const kpis = [
-    { label: "This month volume", icon: Receipt, node: <CurrencyDisplay value={stats.monthVolume} compact /> },
+    { label: `Volume · ${stats.periodLabel}`, icon: Receipt, node: <CurrencyDisplay value={stats.volume} compact /> },
     { label: "Pending approvals", icon: ShieldCheck, node: <span>{stats.pendingCount}</span> },
     { label: "Pending amount", icon: Sparkles, node: <CurrencyDisplay value={stats.pendingAmount} compact /> },
-    { label: "Approved (30d)", icon: TrendingUp, node: <CurrencyDisplay value={stats.approved30d} compact /> },
+    { label: `Approved · ${stats.periodLabel}`, icon: TrendingUp, node: <CurrencyDisplay value={stats.approved} compact /> },
   ];
 
   return (
@@ -113,12 +121,7 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
       <PageHeader
         title="Dashboard"
         description="Track spend, approvals and reimbursements at a glance"
-        actions={
-          <Button variant="outline" size="sm">
-            <CalendarDays className="h-4 w-4" />
-            {new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
-          </Button>
-        }
+        actions={<PeriodFilter value={period} onChange={setPeriod} />}
       />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -143,7 +146,7 @@ export default function TenantAdminDashboardPage({ params }: PageProps) {
         ) : (
           <>
             <SpendingTrend data={stats.trend} />
-            <CategoryDonut categories={stats.categories} />
+            <CategoryDonut categories={stats.categories} subtitle={stats.periodLabel} />
           </>
         )}
       </section>

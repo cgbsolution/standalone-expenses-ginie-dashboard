@@ -8,14 +8,15 @@ import type { Category } from "@/types/expense";
 
 interface Props {
   categories: Category[];
+  subtitle?: string;
 }
 
-export function CategoryDonut({ categories }: Props) {
+export function CategoryDonut({ categories, subtitle = "This month so far" }: Props) {
   const data = categories.map((c) => ({ name: c.name, value: c.spent, color: c.color }));
   const total = data.reduce((s, d) => s + d.value, 0);
 
   return (
-    <SectionCard title="Category breakdown" description="This month so far">
+    <SectionCard title="Category breakdown" description={subtitle}>
       <div className="relative flex items-center justify-center">
         <div className="h-56 w-56">
           <ResponsiveContainer width="100%" height="100%">
