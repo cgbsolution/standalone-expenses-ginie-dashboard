@@ -12,6 +12,9 @@ export interface ExpenseInvoice {
   PostingDate: string;
   DocumentDate: string;
   SelfApprove: boolean;
+  /** Category label — the chatbot writes it here as ExpenseType, not Category. */
+  ExpenseType?: string;
+  SubCategory?: string;
   ReceiptUrl?: string;
   /** Signed/storage URL set by some submission paths instead of File[]. */
   SasUrl?: string;

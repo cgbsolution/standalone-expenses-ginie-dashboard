@@ -11,6 +11,7 @@ import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { useTenants } from "@/lib/hooks/use-tenants";
 import { useAllExpenses } from "@/lib/hooks/use-expenses";
 import { toAmount } from "@/lib/format";
+import { expenseCategory } from "@/lib/expense";
 import type { MasterExpense } from "@/types/expense";
 
 const PLANS = ["starter", "growth", "scale", "enterprise"] as const;
@@ -29,7 +30,7 @@ export default function AnalyticsPage() {
     const maxPlan = Math.max(1, ...planMix.map((p) => p.count));
     const catMap = new Map<string, number>();
     for (const e of expenses ?? []) {
-      const c = (e as MasterExpense).ExpenseData?.[0]?.Category || "Uncategorised";
+      const c = expenseCategory(e as MasterExpense);
       catMap.set(c, (catMap.get(c) || 0) + toAmount((e as MasterExpense).TotalAmount));
     }
     const categories = Array.from(catMap.entries()).map(([key, total]) => ({ key, total })).sort((a, b) => b.total - a.total).slice(0, 6);

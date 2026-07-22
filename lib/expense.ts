@@ -33,3 +33,20 @@ export function expenseTotal(e: MasterExpense): number {
   const t = toAmount(e.TotalAmount);
   return t > 0 ? t : (e.ExpenseData ?? []).reduce((s, inv) => s + toAmount(inv.InvoiceAmount), 0);
 }
+
+/**
+ * Resolve an expense's category. The mobile app fills ExpenseData[0].Category,
+ * but the chatbot leaves it null and puts the label in ExpenseType instead — so
+ * fall back through the fields that actually carry it before giving up.
+ */
+export function expenseCategory(e: MasterExpense): string {
+  const inv = e.ExpenseData?.[0];
+  const pick = (v?: string) => (v && v.trim() ? v.trim() : "");
+  return (
+    pick(inv?.Category) ||
+    pick(inv?.ExpenseType) ||
+    pick(inv?.SubCategory) ||
+    pick(e.ExpenseTitle) ||
+    "Uncategorised"
+  );
+}

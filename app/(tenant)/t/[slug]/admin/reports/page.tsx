@@ -12,11 +12,10 @@ import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useTenantExpenses } from "@/lib/hooks/use-expenses";
 import { formatDate, toAmount } from "@/lib/format";
+import { expenseCategory } from "@/lib/expense";
 import type { MasterExpense } from "@/types/expense";
 
-function categoryOf(exp: MasterExpense): string {
-  return exp.ExpenseData?.[0]?.Category || "Uncategorised";
-}
+const categoryOf = (exp: MasterExpense) => expenseCategory(exp);
 
 // Robust total: use TotalAmount if it parses, else sum the invoice lines.
 function expenseTotal(e: MasterExpense): number {

@@ -14,7 +14,7 @@ import { SpendingTrend } from "@/components/admin/spending-trend";
 import { CategoryDonut } from "@/components/admin/category-donut";
 import { RecentExpenses } from "@/components/admin/recent-expenses";
 import { useAuthStore } from "@/stores/auth-store";
-import { expenseTotal } from "@/lib/expense";
+import { expenseTotal, expenseCategory } from "@/lib/expense";
 import { periodRange, rangeBounds, inRange, type Period, type Range } from "@/lib/period";
 import type { MasterExpense, Category } from "@/types/expense";
 import type { SpendTrendPoint } from "@/lib/mocks/dashboard";
@@ -61,7 +61,7 @@ function buildTrend(expenses: MasterExpense[], range: Range): SpendTrendPoint[] 
 function buildCategories(expenses: MasterExpense[], defined: { id: string; name: string; color: string; icon: string; monthlyBudget: number }[]): Category[] {
   const spent = new Map<string, number>();
   for (const e of expenses) {
-    const name = e.ExpenseData?.[0]?.Category || "Uncategorised";
+    const name = expenseCategory(e);
     spent.set(name, (spent.get(name) || 0) + expenseTotal(e));
   }
   const out: Category[] = defined.map((c) => ({
