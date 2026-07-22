@@ -58,3 +58,21 @@ export async function createTenant(input: CreateTenantInput): Promise<CreatedTen
   const { data } = await apiClient.post<CreatedTenant>("/tenants", input);
   return data;
 }
+
+export type UpdateTenantInput = {
+  status?: Tenant["status"];
+  plan?: Tenant["plan"];
+};
+
+/** PATCH /tenants/:slug — change status (suspend / churn / reactivate) or plan. */
+export async function updateTenant(
+  slug: string,
+  input: UpdateTenantInput,
+): Promise<{ slug: string; status: Tenant["status"]; plan: Tenant["plan"]; mrr: number }> {
+  if (USE_MOCKS) {
+    await sleep(200);
+    return { slug, status: input.status ?? "active", plan: input.plan ?? "growth", mrr: 0 };
+  }
+  const { data } = await apiClient.patch(`/tenants/${encodeURIComponent(slug)}`, input);
+  return data;
+}

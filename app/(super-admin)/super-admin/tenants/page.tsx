@@ -15,8 +15,24 @@ import { CreateTenantSheet } from "@/components/super-admin/create-tenant-sheet"
 import { TenantRowActions } from "@/components/super-admin/tenant-row-actions";
 import { useTenants } from "@/lib/hooks/use-tenants";
 import { formatRelative } from "@/lib/format";
-import { toast } from "sonner";
 import type { Tenant } from "@/types/tenant";
+
+function exportTenantsCsv(tenants: Tenant[]) {
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const head = ["Company", "Slug", "Admin email", "Plan", "Status", "Users", "MRR (INR)", "30-day volume (INR)", "Created"];
+  const rows = tenants.map((t) =>
+    [t.name, t.slug, t.adminEmail ?? "", t.plan ?? "", t.status, t.userCount, t.mrr ?? 0, t.monthlyExpenseVolume ?? 0, t.createdAt]
+      .map(esc)
+      .join(","),
+  );
+  const csv = [head.map(esc).join(","), ...rows].join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "tenants.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function TenantsPage() {
   const router = useRouter();
@@ -108,7 +124,8 @@ export default function TenantsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => toast.info("CSV export not wired yet")}
+              disabled={!tenants?.length}
+              onClick={() => exportTenantsCsv(tenants ?? [])}
             >
               <Download className="h-4 w-4" />
               Export

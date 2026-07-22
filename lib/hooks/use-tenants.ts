@@ -1,7 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createTenant, getTenant, listTenants, type CreateTenantInput } from "@/lib/api/tenants";
+import {
+  createTenant,
+  getTenant,
+  listTenants,
+  updateTenant,
+  type CreateTenantInput,
+  type UpdateTenantInput,
+} from "@/lib/api/tenants";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/api/client";
 
@@ -36,5 +43,15 @@ export function useCreateTenant() {
       });
     },
     onError: (err) => toast.error(apiErrorMessage(err, "Could not create tenant")),
+  });
+}
+
+export function useUpdateTenant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, input }: { slug: string; input: UpdateTenantInput }) =>
+      updateTenant(slug, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tenants"] }),
+    onError: (err) => toast.error(apiErrorMessage(err, "Could not update tenant")),
   });
 }
