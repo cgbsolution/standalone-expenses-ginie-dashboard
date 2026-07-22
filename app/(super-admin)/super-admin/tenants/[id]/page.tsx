@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Users2, Wallet, Receipt, CalendarDays } from "lucide-react";
+import { ArrowLeft, Users2, Wallet, Receipt, CalendarDays, MoreHorizontal, ShieldCheck, User as UserIcon, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { PlanBadge, TenantStatusBadge } from "@/components/shared/status-badge";
@@ -10,9 +12,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
 import { useTenant } from "@/lib/hooks/use-tenants";
-import { useUsers } from "@/lib/hooks/use-users";
+import { useUsers, useUpdateUser, useDeleteUser } from "@/lib/hooks/use-users";
 import { formatDate } from "@/lib/format";
+import type { User } from "@/types/auth";
 
 interface PageProps {
   params: { id: string };
@@ -55,9 +63,12 @@ export default function TenantDetailPage({ params }: PageProps) {
           </section>
 
           <div className="rounded-xl border border-border">
-            <div className="border-b border-border/60 px-4 py-3">
-              <p className="text-sm font-semibold">Users</p>
-              {tenant.adminEmail ? <p className="text-xs text-muted-foreground">Admin: {tenant.adminName || tenant.adminEmail}</p> : null}
+            <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold">Users</p>
+                {tenant.adminEmail ? <p className="text-xs text-muted-foreground">Admin: {tenant.adminName || tenant.adminEmail}</p> : null}
+              </div>
+              <InviteEmployeeSheet tenantSlug={tenant.slug} />
             </div>
             {usersLoading ? (
               <div className="space-y-2 p-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
@@ -71,6 +82,7 @@ export default function TenantDetailPage({ params }: PageProps) {
                     <th className="px-4 py-2.5 font-medium">Role</th>
                     <th className="px-4 py-2.5 font-medium">Grade</th>
                     <th className="px-4 py-2.5 font-medium">Department</th>
+                    <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
                 <tbody>
@@ -88,6 +100,7 @@ export default function TenantDetailPage({ params }: PageProps) {
                       <td className="px-4 py-2.5"><Badge variant="secondary" className="capitalize">{u.role}</Badge></td>
                       <td className="px-4 py-2.5 text-muted-foreground">{u.grade || "—"}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{u.department || "—"}</td>
+                      <td className="px-4 py-2.5 text-right"><UserActions user={u} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -98,6 +111,71 @@ export default function TenantDetailPage({ params }: PageProps) {
       ) : (
         <PageHeader title="Tenant not found" description={`No tenant with slug "${params.id}"`} />
       )}
+    </>
+  );
+}
+
+function UserActions({ user }: { user: User }) {
+  const update = useUpdateUser();
+  const remove = useDeleteUser();
+  const [confirm, setConfirm] = useState(false);
+  if (user.role === "super_admin") return null;
+  const isAdmin = user.role === "admin";
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${user.displayName}`}>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuLabel>Manage user</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {isAdmin ? (
+            <DropdownMenuItem onSelect={() => update.mutate({ email: user.email, role: "employee" })}>
+              <UserIcon className="h-4 w-4" /> Make employee
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onSelect={() => update.mutate({ email: user.email, role: "admin" })}>
+              <ShieldCheck className="h-4 w-4" /> Make admin
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setConfirm(true)} className="text-destructive focus:text-destructive">
+            <Trash2 className="h-4 w-4" /> Remove user
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={confirm} onOpenChange={setConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {user.displayName}?</DialogTitle>
+            <DialogDescription>
+              This removes {user.email} from the tenant. Their expense history stays, but they can no
+              longer sign in. You can re-invite them later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setConfirm(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={remove.isPending}
+              onClick={() =>
+                remove.mutate(user.email, {
+                  onSuccess: () => { toast.success(`${user.displayName} removed`); setConfirm(false); },
+                })
+              }
+            >
+              {remove.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

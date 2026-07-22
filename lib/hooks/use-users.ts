@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   bulkInviteUsers,
+  deleteUser,
   inviteUser,
   listUsers,
   updateUser,
@@ -91,5 +92,14 @@ export function useUpdateUser() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
     },
+  });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (email: string) => deleteUser(email),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+    onError: (err) => toast.error(apiErrorMessage(err, "Could not remove user")),
   });
 }

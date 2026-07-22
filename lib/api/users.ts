@@ -65,6 +65,14 @@ export async function updateUser(input: UpdateUserInput): Promise<User> {
   return data;
 }
 
+export async function deleteUser(email: string): Promise<void> {
+  if (USE_MOCKS) {
+    await sleep(200);
+    return;
+  }
+  await apiClient.delete(`/users/${encodeURIComponent(email)}`);
+}
+
 export interface UpdateProfileInput {
   email: string;
   integrationProvider?: string | null;
