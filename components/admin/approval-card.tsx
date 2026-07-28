@@ -7,7 +7,9 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { AgingIndicator, isOverdue } from "./aging-indicator";
 import { TieredAmount } from "./amount-tier";
+import { MarkPaidButton } from "./mark-paid";
 import { cn } from "@/lib/utils";
+import type { User } from "@/types/auth";
 import type { MasterExpense } from "@/types/expense";
 
 interface ApprovalCardProps {
@@ -18,6 +20,10 @@ interface ApprovalCardProps {
   onReject: () => void;
   onOpen: () => void;
   disabled?: boolean;
+  /** Signed-in viewer — decides whether the payment action is theirs to take. */
+  user?: User;
+  /** Tenant's super-admin-controlled `manualPaymentEnabled` flag. */
+  manualPaymentEnabled?: boolean;
 }
 
 export function ApprovalCard({
@@ -28,6 +34,8 @@ export function ApprovalCard({
   onReject,
   onOpen,
   disabled,
+  user,
+  manualPaymentEnabled = false,
 }: ApprovalCardProps) {
   const overdue = expense.ApprovalStatus === "Pending" && isOverdue(expense.SubmissionDate);
 
@@ -109,7 +117,16 @@ export function ApprovalCard({
             </Button>
           </div>
         ) : (
-          <StatusBadge status={expense.ApprovalStatus} />
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            {/* Renders nothing unless the tenant has manual payment enabled and
+                this viewer is the finance approver / a tenant admin. */}
+            <MarkPaidButton
+              expense={expense}
+              user={user}
+              enabled={manualPaymentEnabled}
+            />
+            <StatusBadge status={expense.ApprovalStatus} />
+          </div>
         )}
       </div>
     </li>

@@ -26,6 +26,7 @@ import { isOverdue } from "@/components/admin/aging-indicator";
 import { StatusBadge } from "@/components/shared/status-badge";
 
 import { useTenantExpenses, useUpdateExpenseStatus } from "@/lib/hooks/use-expenses";
+import { useConfig } from "@/lib/hooks/use-settings";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -35,10 +36,14 @@ type StatusTab = "Pending" | "Approved" | "Rejected" | "All";
 type SortKey = "oldest" | "newest" | "amount-desc" | "amount-asc";
 
 export default function ApprovalsPage({ params }: { params: { slug: string } }) {
-  const userEmail = useAuthStore((s) => s.session?.user.email ?? "");
+  const user = useAuthStore((s) => s.session?.user);
+  const userEmail = user?.email ?? "";
   // Tenant-admin: every pending expense across the tenant, not just my own queue.
   const { data: expenses, isLoading, error, refetch, isFetching } = useTenantExpenses(params.slug);
   const { mutateAsync, isPending } = useUpdateExpenseStatus();
+  // Super-admin gated: only tenants without SAP get the manual payment tick.
+  const { data: tenantConfig } = useConfig(params.slug);
+  const manualPaymentEnabled = !!tenantConfig?.config.manualPaymentEnabled;
 
   const [tab, setTab] = useState<StatusTab>("Pending");
   const [search, setSearch] = useState("");
@@ -85,8 +90,14 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
     });
   }
 
+  // The mutation's onError already toasts, so swallow the rejection here —
+  // otherwise every failed decision surfaces as an unhandled promise rejection.
   async function decideOne(id: string, status: "Approved" | "Rejected") {
-    await mutateAsync({ id, ApprovalStatus: status, UpdatedBy: userEmail });
+    try {
+      await mutateAsync({ id, ApprovalStatus: status, UpdatedBy: userEmail });
+    } catch {
+      // reported by useUpdateExpenseStatus
+    }
   }
 
   async function decideMany(status: "Approved" | "Rejected") {
@@ -270,6 +281,8 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
               onReject={() => decideOne(e.id, "Rejected")}
               onOpen={() => setDrawerId(e.id)}
               disabled={isPending}
+              user={user}
+              manualPaymentEnabled={manualPaymentEnabled}
             />
           ))}
         </ul>
@@ -279,9 +292,15 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
         expense={activeExpense}
         open={!!drawerId}
         onOpenChange={(open) => !open && setDrawerId(null)}
-        onApprove={() => activeExpense && decideOne(activeExpense.id, "Approved").then(() => setDrawerId(null))}
-        onReject={() => activeExpense && decideOne(activeExpense.id, "Rejected").then(() => setDrawerId(null))}
+        onApprove={() => {
+          if (activeExpense) void decideOne(activeExpense.id, "Approved").then(() => setDrawerId(null));
+        }}
+        onReject={() => {
+          if (activeExpense) void decideOne(activeExpense.id, "Rejected").then(() => setDrawerId(null));
+        }}
         disabled={isPending}
+        user={user}
+        manualPaymentEnabled={manualPaymentEnabled}
       />
     </>
   );

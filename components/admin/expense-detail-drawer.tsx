@@ -10,9 +10,11 @@ import { invoiceFiles, type AttachmentRef } from "@/lib/expense";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TieredAmount } from "@/components/admin/amount-tier";
+import { MarkPaidButton, canRecordPayment, isPaid } from "@/components/admin/mark-paid";
 import { formatDate, formatRelative, toAmount } from "@/lib/format";
 import apiClient from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+import type { User } from "@/types/auth";
 import type { MasterExpense } from "@/types/expense";
 
 function expenseTotal(e: MasterExpense): number {
@@ -50,7 +52,11 @@ function computeStages(e: MasterExpense): Stage[] {
   } else if (status === "Approved") {
     manager = { key: "manager", label: "Manager approval", state: "done", at: forwardEntry?.at };
     finance = { key: "finance", label: "Finance approval", state: "done", at: e.ApprovedAt };
-    payment = { key: "payment", label: "Payment", state: "current" };
+    // Real payment state once finance has ticked it off manually (tenants
+    // without SAP); otherwise it's still the outstanding step.
+    payment = isPaid(e)
+      ? { key: "payment", label: "Payment", state: "done", at: e.PaymentInfo?.PaidAt }
+      : { key: "payment", label: "Payment", state: "current" };
   } else {
     manager = forwarded
       ? { key: "manager", label: "Manager approval", state: "done", at: forwardEntry?.at }
@@ -105,6 +111,8 @@ export function ExpenseDetailDrawer({
   onApprove,
   onReject,
   disabled,
+  user,
+  manualPaymentEnabled = false,
 }: {
   expense: MasterExpense | null;
   open: boolean;
@@ -112,6 +120,10 @@ export function ExpenseDetailDrawer({
   onApprove?: () => void;
   onReject?: () => void;
   disabled?: boolean;
+  /** Signed-in viewer — decides whether the payment action is theirs to take. */
+  user?: User;
+  /** Tenant's super-admin-controlled `manualPaymentEnabled` flag. */
+  manualPaymentEnabled?: boolean;
 }) {
   const [opening, setOpening] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
@@ -189,6 +201,8 @@ export function ExpenseDetailDrawer({
     })),
   );
   const canDecide = !!onApprove && !!onReject && expense.ApprovalStatus === "Pending";
+  const canPay = manualPaymentEnabled && canRecordPayment(user, expense) && !isPaid(expense);
+  const payment = expense.PaymentInfo;
 
   return (
     <>
@@ -214,6 +228,22 @@ export function ExpenseDetailDrawer({
         </div>
 
         <StatusTimeline expense={expense} />
+
+        {isPaid(expense) && payment ? (
+          <div className="mt-6 rounded-lg border border-success/30 bg-success/5 p-3">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-success">
+              <CheckCircle2 className="h-3 w-3" /> Payment recorded
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+              {payment.PaidAt ? (
+                <Row label="Paid on" value={formatDate(payment.PaidAt, "MMM d, yyyy")} />
+              ) : null}
+              {payment.Reference ? <Row label="Reference" value={payment.Reference} /> : null}
+              {payment.PaidBy ? <Row label="Recorded by" value={payment.PaidBy} className="col-span-2" /> : null}
+              {payment.Note ? <Row label="Note" value={payment.Note} className="col-span-2" /> : null}
+            </div>
+          </div>
+        ) : null}
 
         {items.length > 0 ? (
           <div className="mt-6">
@@ -303,6 +333,10 @@ export function ExpenseDetailDrawer({
             <Button size="sm" onClick={onApprove} disabled={disabled}>
               <Check className="h-3.5 w-3.5" /> Approve
             </Button>
+          </div>
+        ) : canPay ? (
+          <div className="sticky bottom-0 -mx-6 -mb-6 mt-6 flex items-center justify-end gap-2 border-t border-border bg-card/95 px-6 py-3 backdrop-blur-xl">
+            <MarkPaidButton expense={expense} user={user} enabled={manualPaymentEnabled} />
           </div>
         ) : null}
       </SheetContent>

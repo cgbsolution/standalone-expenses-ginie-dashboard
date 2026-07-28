@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { Badge } from "@/components/ui/badge";
+import { PaidBadge, isPaid } from "@/components/admin/mark-paid";
 import { useMyExpenses } from "@/lib/hooks/use-expenses";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative } from "@/lib/format";
@@ -46,9 +47,14 @@ export default function ReimbursementsPage() {
       {
         id: "payout",
         header: "Payout",
-        cell: () => (
-          <Badge variant="warning">Awaiting payout</Badge>
-        ),
+        // Real once finance records the payment (tenants without SAP);
+        // otherwise the expense is approved but not yet paid out.
+        cell: ({ row }) =>
+          isPaid(row.original) ? (
+            <PaidBadge expense={row.original} />
+          ) : (
+            <Badge variant="warning">Awaiting payout</Badge>
+          ),
       },
       {
         accessorKey: "TotalAmount",
@@ -90,8 +96,8 @@ export default function ReimbursementsPage() {
       />
 
       <p className="mt-4 text-[11px] text-muted-foreground">
-        Payout status is illustrative. The real reimbursement workflow (ACH, payroll, finance
-        export) will be wired in a future release.
+        &ldquo;Paid&rdquo; is recorded by Finance once the payout has been made. Automated payout
+        (ACH, payroll, finance export) will be wired in a future release.
       </p>
     </>
   );

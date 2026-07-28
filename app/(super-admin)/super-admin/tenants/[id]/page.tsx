@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Users2, Wallet, Receipt, CalendarDays, MoreHorizontal, ShieldCheck, User as UserIcon, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Users2, Wallet, Receipt, CalendarDays, MoreHorizontal, ShieldCheck, User as UserIcon, Trash2, Loader2, Banknote, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useTenant } from "@/lib/hooks/use-tenants";
 import { useUsers, useUpdateUser, useDeleteUser } from "@/lib/hooks/use-users";
+import { useConfig, useUpdateConfig } from "@/lib/hooks/use-settings";
+import { useIntegrations } from "@/lib/hooks/use-integrations";
+import { apiErrorMessage } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { User } from "@/types/auth";
 
 interface PageProps {
@@ -61,6 +66,8 @@ export default function TenantDetailPage({ params }: PageProps) {
             <Kpi icon={Receipt} label="30-day volume" node={<CurrencyDisplay value={tenant.monthlyExpenseVolume || 0} currency="INR" compact />} />
             <Kpi icon={CalendarDays} label="Created" node={<span className="text-base">{formatDate(tenant.createdAt)}</span>} />
           </section>
+
+          <ManualPaymentCard slug={tenant.slug} />
 
           <div className="rounded-xl border border-border">
             <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
@@ -112,6 +119,95 @@ export default function TenantDetailPage({ params }: PageProps) {
         <PageHeader title="Tenant not found" description={`No tenant with slug "${params.id}"`} />
       )}
     </>
+  );
+}
+
+/**
+ * Super-admin only switch. Tenants wired to SAP get payment status from the
+ * posting; tenants without it have no record of payment at all, so this lets
+ * their finance approver tick it off by hand after final approval.
+ * The backend re-checks the flag on every mark-paid call.
+ */
+function ManualPaymentCard({ slug }: { slug: string }) {
+  const { data, isLoading } = useConfig(slug);
+  const { data: integrations } = useIntegrations(slug);
+  const update = useUpdateConfig(slug);
+
+  const enabled = !!data?.config.manualPaymentEnabled;
+  const sapConnected = !!integrations?.sap.enabled;
+
+  const toggle = async (next: boolean) => {
+    try {
+      await update.mutateAsync({ manualPaymentEnabled: next });
+      toast.success(next ? "Manual payment marking enabled" : "Manual payment marking disabled");
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Banknote className="h-4 w-4" /> Manual payment marking
+        </CardTitle>
+        <CardDescription>
+          Lets this tenant&apos;s finance approver record payment by hand once an expense is fully
+          approved. Intended for tenants with no SAP connection to post payments through.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div
+          className={cn(
+            "flex items-start gap-2 rounded-lg border px-3 py-2 text-xs",
+            sapConnected
+              ? "border-border bg-muted/40 text-muted-foreground"
+              : "border-warning/30 bg-warning/10 text-warning",
+          )}
+        >
+          <PlugZap className="mt-px h-3.5 w-3.5 shrink-0" />
+          <span>
+            {sapConnected
+              ? "SAP is connected for this tenant — payments normally post through SAP, so this is usually not needed."
+              : "SAP is not connected for this tenant. Without this, approved expenses have no payment record."}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Allow finance to mark payments done</p>
+            <p className="text-xs text-muted-foreground">
+              {enabled
+                ? "Finance sees a “Mark payment done” action on approved expenses."
+                : "Finance cannot record payments for this tenant."}
+            </p>
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-6 w-11 rounded-full" />
+          ) : (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enabled}
+              aria-label="Allow finance to mark payments done"
+              disabled={update.isPending}
+              onClick={() => toggle(!enabled)}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60",
+                enabled ? "bg-primary" : "bg-muted",
+              )}
+            >
+              <span
+                className={cn(
+                  "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
+                  enabled ? "translate-x-5" : "translate-x-1",
+                )}
+              />
+            </button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

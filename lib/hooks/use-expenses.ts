@@ -7,8 +7,10 @@ import {
   listTenantExpenses,
   listApproverExpenses,
   listExpenses,
+  markExpensePaid,
   updateExpenseStatus,
   type ListExpensesParams,
+  type MarkPaidInput,
   type UpdateStatusInput,
 } from "@/lib/api/expenses";
 import type { MasterExpense } from "@/types/expense";
@@ -115,6 +117,39 @@ export function useUpdateExpenseStatus() {
       } else {
         toast.success("Expense updated");
       }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+/**
+ * Manual payment tick (tenants without SAP). Kept separate from
+ * `useUpdateExpenseStatus` because it moves PaymentStatus, not ApprovalStatus —
+ * the two are independent axes and an expense can be Approved + Unpaid.
+ */
+export function useMarkExpensePaid() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: MarkPaidInput) => markExpensePaid(input),
+    onSuccess: (data, input) => {
+      // Patch every cached list in place so the row flips without a refetch.
+      qc.getQueriesData<MasterExpense[]>({ queryKey: ["expenses"] }).forEach(([key, prev]) => {
+        if (!Array.isArray(prev)) return;
+        qc.setQueryData(
+          key,
+          prev.map((e) =>
+            e.id === input.id
+              ? { ...e, PaymentStatus: data.PaymentStatus, PaymentInfo: data.PaymentInfo }
+              : e,
+          ),
+        );
+      });
+      toast.success(input.Paid === false ? "Payment mark removed" : "Payment recorded");
+    },
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, "Could not record payment"));
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });

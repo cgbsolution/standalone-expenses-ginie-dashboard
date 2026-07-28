@@ -2,6 +2,21 @@ import type { AuditTrailEntry } from "./common";
 
 export type ApprovalStatus = "Pending" | "Approved" | "Rejected" | "Draft";
 
+/**
+ * Payment is tracked separately from approval. For tenants wired to SAP the
+ * posting drives it; for tenants without SAP a super-admin can enable
+ * `manualPaymentEnabled` and finance ticks it off by hand after final approval.
+ */
+export type PaymentStatus = "Unpaid" | "Paid";
+
+export interface PaymentInfo {
+  Method: "Manual";
+  PaidAt: string;
+  PaidBy: string;
+  Reference: string;
+  Note: string;
+}
+
 /** Single invoice line on a master expense — matches backend `ExpenseData[]`. */
 export interface ExpenseInvoice {
   EMSUniqueId: string;
@@ -41,6 +56,9 @@ export interface MasterExpense {
   ApprovalHistory?: AuditTrailEntry[];
   LastActionAt?: string;
   ApprovedAt?: string;
+  /** Always sent by the backend; defaults to "Unpaid". */
+  PaymentStatus?: PaymentStatus;
+  PaymentInfo?: PaymentInfo | null;
   RejectionInfo?: {
     Reason: string;
     Comments?: string;

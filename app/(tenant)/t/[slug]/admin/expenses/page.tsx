@@ -10,8 +10,11 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ExpenseDetailDrawer } from "@/components/admin/expense-detail-drawer";
+import { PaidBadge, isPaid } from "@/components/admin/mark-paid";
 import { Button } from "@/components/ui/button";
 import { useTenantExpenses } from "@/lib/hooks/use-expenses";
+import { useConfig } from "@/lib/hooks/use-settings";
+import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative, toAmount } from "@/lib/format";
 import { toast } from "sonner";
 import type { MasterExpense } from "@/types/expense";
@@ -19,6 +22,10 @@ import type { MasterExpense } from "@/types/expense";
 export default function ExpensesPage({ params }: { params: { slug: string } }) {
   // Tenant-admin: every submission across all users in the tenant.
   const { data: expenses, isLoading, error, refetch } = useTenantExpenses(params.slug);
+  const user = useAuthStore((s) => s.session?.user);
+  // Super-admin gated: only tenants without SAP get the manual payment tick.
+  const { data: tenantConfig } = useConfig(params.slug);
+  const manualPaymentEnabled = !!tenantConfig?.config.manualPaymentEnabled;
   const [detailId, setDetailId] = useState<string | null>(null);
   const activeExpense = detailId ? (expenses ?? []).find((e) => e.id === detailId) ?? null : null;
 
@@ -47,7 +54,12 @@ export default function ExpensesPage({ params }: { params: { slug: string } }) {
       {
         accessorKey: "ApprovalStatus",
         header: "Status",
-        cell: ({ row }) => <StatusBadge status={row.original.ApprovalStatus} />,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1.5">
+            <StatusBadge status={row.original.ApprovalStatus} />
+            {isPaid(row.original) ? <PaidBadge expense={row.original} /> : null}
+          </div>
+        ),
       },
       {
         accessorKey: "SubmissionDate",
@@ -123,6 +135,8 @@ export default function ExpensesPage({ params }: { params: { slug: string } }) {
         expense={activeExpense}
         open={!!detailId}
         onOpenChange={(open) => !open && setDetailId(null)}
+        user={user}
+        manualPaymentEnabled={manualPaymentEnabled}
       />
     </>
   );
