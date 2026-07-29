@@ -190,18 +190,20 @@ function NoPolicyCard({ slug }: { slug: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <RuleList
-            tone="off"
-            title="Switched off"
-            items={["Spending caps", "Grade matching", "Self-approval", "Blocking / deny rules"]}
-          />
-          <RuleList
-            tone="on"
-            title="Still enforced"
-            items={["Duplicate bill detection", "Bill categorisation"]}
-          />
-        </div>
+        {enabled && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <RuleList
+              tone="off"
+              title="Switched off"
+              items={["Spending caps", "Grade matching", "Self-approval", "Blocking / deny rules"]}
+            />
+            <RuleList
+              tone="on"
+              title="Still enforced"
+              items={["Duplicate bill detection", "Bill categorisation"]}
+            />
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-4 border-t border-border/60 pt-4">
           <div>
