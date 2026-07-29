@@ -27,6 +27,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 
 import { useTenantExpenses, useUpdateExpenseStatus } from "@/lib/hooks/use-expenses";
 import { useConfig } from "@/lib/hooks/use-settings";
+import { useIntegrations } from "@/lib/hooks/use-integrations";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -41,9 +42,12 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
   // Tenant-admin: every pending expense across the tenant, not just my own queue.
   const { data: expenses, isLoading, error, refetch, isFetching } = useTenantExpenses(params.slug);
   const { mutateAsync, isPending } = useUpdateExpenseStatus();
-  // Super-admin gated: only tenants without SAP get the manual payment tick.
+  // Payment: SAP-connected tenants get status from SAP; the rest can have the
+  // manual tick, which a super-admin enables per tenant.
   const { data: tenantConfig } = useConfig(params.slug);
+  const { data: integrations } = useIntegrations(params.slug);
   const manualPaymentEnabled = !!tenantConfig?.config.manualPaymentEnabled;
+  const sapConnected = !!integrations?.sap.enabled;
 
   const [tab, setTab] = useState<StatusTab>("Pending");
   const [search, setSearch] = useState("");
@@ -283,6 +287,7 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
               disabled={isPending}
               user={user}
               manualPaymentEnabled={manualPaymentEnabled}
+              sapConnected={sapConnected}
             />
           ))}
         </ul>
@@ -301,6 +306,7 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
         disabled={isPending}
         user={user}
         manualPaymentEnabled={manualPaymentEnabled}
+        sapConnected={sapConnected}
       />
     </>
   );

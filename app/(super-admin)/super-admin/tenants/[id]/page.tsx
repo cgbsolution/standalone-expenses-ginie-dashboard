@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Users2, Wallet, Receipt, CalendarDays, MoreHorizontal, ShieldCheck, User as UserIcon, Trash2, Loader2, Banknote, PlugZap } from "lucide-react";
+import { ArrowLeft, Users2, Wallet, Receipt, CalendarDays, MoreHorizontal, ShieldCheck, User as UserIcon, Trash2, Loader2, Banknote, PlugZap, ShieldOff, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ export default function TenantDetailPage({ params }: PageProps) {
             <Kpi icon={CalendarDays} label="Created" node={<span className="text-base">{formatDate(tenant.createdAt)}</span>} />
           </section>
 
+          <NoPolicyCard slug={tenant.slug} />
           <ManualPaymentCard slug={tenant.slug} />
 
           <div className="rounded-xl border border-border">
@@ -119,6 +120,141 @@ export default function TenantDetailPage({ params }: PageProps) {
         <PageHeader title="Tenant not found" description={`No tenant with slug "${params.id}"`} />
       )}
     </>
+  );
+}
+
+/** Shared switch used by the super-admin tenant toggles. */
+function Switch({
+  checked,
+  label,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60",
+        checked ? "bg-primary" : "bg-muted",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
+          checked ? "translate-x-5" : "translate-x-1",
+        )}
+      />
+    </button>
+  );
+}
+
+/**
+ * Super-admin only. "No Policy" mode turns off the bot's spending caps, grade
+ * matching, self-approval and blocking rules for this tenant — every bill goes
+ * Manager → Finance on its full amount. Duplicate detection and bill
+ * categorisation are deliberately unaffected.
+ */
+function NoPolicyCard({ slug }: { slug: string }) {
+  const { data, isLoading } = useConfig(slug);
+  const update = useUpdateConfig(slug);
+  const enabled = !!data?.config.noPolicyMode;
+
+  const toggle = async (next: boolean) => {
+    try {
+      await update.mutateAsync({ noPolicyMode: next });
+      toast.success(next ? "No-Policy mode enabled" : "Policy enforcement restored");
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ShieldOff className="h-4 w-4" /> No-Policy mode
+        </CardTitle>
+        <CardDescription>
+          For tenants that haven&apos;t configured an expense policy yet. Bills are accepted at
+          their full amount and always routed Manager → Finance.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <RuleList
+            tone="off"
+            title="Switched off"
+            items={["Spending caps", "Grade matching", "Self-approval", "Blocking / deny rules"]}
+          />
+          <RuleList
+            tone="on"
+            title="Still enforced"
+            items={["Duplicate bill detection", "Bill categorisation"]}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4 border-t border-border/60 pt-4">
+          <div>
+            <p className="text-sm font-medium">Run this tenant without a policy</p>
+            <p className="text-xs text-muted-foreground">
+              {enabled
+                ? "No caps applied. Every bill needs Manager then Finance approval."
+                : "This tenant's configured caps and rules are being enforced."}
+            </p>
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-6 w-11 rounded-full" />
+          ) : (
+            <Switch
+              checked={enabled}
+              label="Run this tenant without a policy"
+              disabled={update.isPending}
+              onChange={toggle}
+            />
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RuleList({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  tone: "on" | "off";
+}) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        {title}
+      </p>
+      <ul className="mt-2 space-y-1">
+        {items.map((i) => (
+          <li key={i} className="flex items-center gap-1.5 text-xs">
+            {tone === "off" ? (
+              <X className="h-3 w-3 shrink-0 text-muted-foreground" />
+            ) : (
+              <Check className="h-3 w-3 shrink-0 text-success" />
+            )}
+            <span className={tone === "off" ? "text-muted-foreground" : undefined}>{i}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -185,25 +321,12 @@ function ManualPaymentCard({ slug }: { slug: string }) {
           {isLoading ? (
             <Skeleton className="h-6 w-11 rounded-full" />
           ) : (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={enabled}
-              aria-label="Allow finance to mark payments done"
+            <Switch
+              checked={enabled}
+              label="Allow finance to mark payments done"
               disabled={update.isPending}
-              onClick={() => toggle(!enabled)}
-              className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60",
-                enabled ? "bg-primary" : "bg-muted",
-              )}
-            >
-              <span
-                className={cn(
-                  "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
-                  enabled ? "translate-x-5" : "translate-x-1",
-                )}
-              />
-            </button>
+              onChange={toggle}
+            />
           )}
         </div>
       </CardContent>

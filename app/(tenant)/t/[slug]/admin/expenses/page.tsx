@@ -14,6 +14,7 @@ import { PaidBadge, isPaid } from "@/components/admin/mark-paid";
 import { Button } from "@/components/ui/button";
 import { useTenantExpenses } from "@/lib/hooks/use-expenses";
 import { useConfig } from "@/lib/hooks/use-settings";
+import { useIntegrations } from "@/lib/hooks/use-integrations";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative, toAmount } from "@/lib/format";
 import { toast } from "sonner";
@@ -23,9 +24,12 @@ export default function ExpensesPage({ params }: { params: { slug: string } }) {
   // Tenant-admin: every submission across all users in the tenant.
   const { data: expenses, isLoading, error, refetch } = useTenantExpenses(params.slug);
   const user = useAuthStore((s) => s.session?.user);
-  // Super-admin gated: only tenants without SAP get the manual payment tick.
+  // Payment: SAP-connected tenants get status from SAP; the rest can have the
+  // manual tick, which a super-admin enables per tenant.
   const { data: tenantConfig } = useConfig(params.slug);
+  const { data: integrations } = useIntegrations(params.slug);
   const manualPaymentEnabled = !!tenantConfig?.config.manualPaymentEnabled;
+  const sapConnected = !!integrations?.sap.enabled;
   const [detailId, setDetailId] = useState<string | null>(null);
   const activeExpense = detailId ? (expenses ?? []).find((e) => e.id === detailId) ?? null : null;
 
@@ -137,6 +141,7 @@ export default function ExpensesPage({ params }: { params: { slug: string } }) {
         onOpenChange={(open) => !open && setDetailId(null)}
         user={user}
         manualPaymentEnabled={manualPaymentEnabled}
+        sapConnected={sapConnected}
       />
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, Check, Loader2 } from "lucide-react";
+import { Banknote, Check, Loader2, PlugZap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,14 +62,33 @@ export function PaidBadge({ expense, className }: { expense: MasterExpense; clas
   );
 }
 
+/** Read-only marker for tenants whose payments post through SAP. */
+export function SapPaymentBadge({ className }: { className?: string }) {
+  return (
+    <span
+      title="This tenant is connected to SAP — payment is posted there, not recorded by hand."
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      <PlugZap className="h-3 w-3" /> Handled by SAP
+    </span>
+  );
+}
+
 /**
  * "Mark payment done" — only rendered when the tenant's super-admin has turned
  * on manual payment marking (`enabled`) and the viewer is allowed to act.
+ *
+ * When the tenant is connected to SAP, payment is posted there instead, so the
+ * manual action is replaced by a read-only "Handled by SAP" marker.
  */
 export function MarkPaidButton({
   expense,
   user,
   enabled,
+  sapConnected = false,
   size = "sm",
   className,
 }: {
@@ -77,6 +96,8 @@ export function MarkPaidButton({
   user: User | undefined;
   /** Tenant's `manualPaymentEnabled` flag. */
   enabled: boolean;
+  /** Tenant's SAP integration is enabled — payment comes from SAP. */
+  sapConnected?: boolean;
   size?: "sm" | "icon-sm";
   className?: string;
 }) {
@@ -85,8 +106,15 @@ export function MarkPaidButton({
   const [note, setNote] = useState("");
   const markPaid = useMarkExpensePaid();
 
-  if (!enabled || !canRecordPayment(user, expense)) return null;
+  // A recorded payment always wins — show it however the tenant is wired.
   if (isPaid(expense)) return <PaidBadge expense={expense} className={className} />;
+  // SAP posts the payment, so nobody records it by hand here.
+  if (sapConnected) {
+    return expense.ApprovalStatus === "Approved" ? (
+      <SapPaymentBadge className={className} />
+    ) : null;
+  }
+  if (!enabled || !canRecordPayment(user, expense)) return null;
 
   const submit = async () => {
     try {

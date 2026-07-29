@@ -39,7 +39,20 @@ export default function TenantSettingsPage({ params }: PageProps) {
   const save = async () => {
     if (!form) return;
     try {
-      await update.mutateAsync(form);
+      // Send only the fields this page owns. `manualPaymentEnabled` and
+      // `noPolicyMode` are super-admin switches that also live in this config
+      // blob — round-tripping them from a stale form would silently revert a
+      // super-admin's change made while this page was open.
+      await update.mutateAsync({
+        currency: form.currency,
+        fiscalYearStart: form.fiscalYearStart,
+        weekStart: form.weekStart,
+        receiptRequired: form.receiptRequired,
+        perClaimLimit: form.perClaimLimit,
+        autoApproveUnder: form.autoApproveUnder,
+        notifyByEmail: form.notifyByEmail,
+        brandColor: form.brandColor,
+      });
       toast.success("Workspace settings saved");
     } catch (e) {
       toast.error(apiErrorMessage(e));

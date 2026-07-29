@@ -17,6 +17,13 @@ export interface WorkspaceConfig {
    * SAP connection to post payments through.
    */
   manualPaymentEnabled: boolean;
+  /**
+   * Super-admin controlled, per tenant. "No Policy" mode: the bot stops
+   * applying spending caps, grade matching, self-approval and blocking rules —
+   * every bill goes Manager → Finance on its full amount. Duplicate detection
+   * and categorisation still apply.
+   */
+  noPolicyMode: boolean;
 }
 
 export interface TenantConfigResponse {
@@ -29,6 +36,7 @@ const DEFAULTS: WorkspaceConfig = {
   currency: "INR", fiscalYearStart: "April", weekStart: "Monday",
   receiptRequired: true, perClaimLimit: 0, autoApproveUnder: 0,
   notifyByEmail: true, brandColor: "", manualPaymentEnabled: false,
+  noPolicyMode: false,
 };
 
 /** '__platform__' is the reserved slug for super-admin platform settings. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, FileText, Loader2, Paperclip, CheckCircle2, Clock, XCircle, Circle, ExternalLink } from "lucide-react";
+import { Check, X, FileText, Loader2, Paperclip, CheckCircle2, Clock, XCircle, Circle, ExternalLink, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -113,6 +113,7 @@ export function ExpenseDetailDrawer({
   disabled,
   user,
   manualPaymentEnabled = false,
+  sapConnected = false,
 }: {
   expense: MasterExpense | null;
   open: boolean;
@@ -124,6 +125,8 @@ export function ExpenseDetailDrawer({
   user?: User;
   /** Tenant's super-admin-controlled `manualPaymentEnabled` flag. */
   manualPaymentEnabled?: boolean;
+  /** Tenant's SAP integration is enabled — payment status comes from SAP. */
+  sapConnected?: boolean;
 }) {
   const [opening, setOpening] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
@@ -201,8 +204,11 @@ export function ExpenseDetailDrawer({
     })),
   );
   const canDecide = !!onApprove && !!onReject && expense.ApprovalStatus === "Pending";
-  const canPay = manualPaymentEnabled && canRecordPayment(user, expense) && !isPaid(expense);
+  const canPay =
+    manualPaymentEnabled && !sapConnected && canRecordPayment(user, expense) && !isPaid(expense);
   const payment = expense.PaymentInfo;
+  // SAP-connected tenants never tick payment by hand — surface where it comes from.
+  const showSapPayment = sapConnected && expense.ApprovalStatus === "Approved" && !isPaid(expense);
 
   return (
     <>
@@ -228,6 +234,15 @@ export function ExpenseDetailDrawer({
         </div>
 
         <StatusTimeline expense={expense} />
+
+        {showSapPayment ? (
+          <div className="mt-6 flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            <PlugZap className="mt-px h-3.5 w-3.5 shrink-0" />
+            <span>
+              Payment for this tenant posts through SAP — it isn&apos;t recorded here by hand.
+            </span>
+          </div>
+        ) : null}
 
         {isPaid(expense) && payment ? (
           <div className="mt-6 rounded-lg border border-success/30 bg-success/5 p-3">

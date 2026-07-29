@@ -24,6 +24,8 @@ interface ApprovalCardProps {
   user?: User;
   /** Tenant's super-admin-controlled `manualPaymentEnabled` flag. */
   manualPaymentEnabled?: boolean;
+  /** Tenant's SAP integration is enabled — payment status comes from SAP. */
+  sapConnected?: boolean;
 }
 
 export function ApprovalCard({
@@ -36,6 +38,7 @@ export function ApprovalCard({
   disabled,
   user,
   manualPaymentEnabled = false,
+  sapConnected = false,
 }: ApprovalCardProps) {
   const overdue = expense.ApprovalStatus === "Pending" && isOverdue(expense.SubmissionDate);
 
@@ -124,6 +127,7 @@ export function ApprovalCard({
               expense={expense}
               user={user}
               enabled={manualPaymentEnabled}
+              sapConnected={sapConnected}
             />
             <StatusBadge status={expense.ApprovalStatus} />
           </div>
