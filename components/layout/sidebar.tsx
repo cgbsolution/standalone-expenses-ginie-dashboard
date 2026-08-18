@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Settings, Sparkles } from "lucide-react";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { navForRole, type NavSection } from "@/lib/nav";
+import { navForRole, type NavItem, type NavSection } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { UserAvatar } from "@/components/shared/user-avatar";
@@ -124,7 +124,7 @@ function SidebarNav({
               </p>
             ) : null}
             {section.items.map((item) => {
-              const isActive = isItemActive(pathname, item.href);
+              const isActive = isItemActive(pathname, item);
               const Icon = item.icon;
               const content = (
                 <Link
@@ -183,11 +183,12 @@ function SidebarNav({
   );
 }
 
-function isItemActive(pathname: string, href: string): boolean {
+function isItemActive(pathname: string, item: NavItem): boolean {
+  const { href } = item;
   if (pathname === href) return true;
   // Section-root items (the dashboards) must match EXACTLY — otherwise they'd
   // stay highlighted on every child route (e.g. Dashboard lit while on Expenses).
-  if (href === "/super-admin" || href.endsWith("/admin") || href.endsWith("/employee")) {
+  if (item.exact || href === "/super-admin" || href.endsWith("/admin") || href.endsWith("/employee")) {
     return false;
   }
   return pathname.startsWith(href + "/");

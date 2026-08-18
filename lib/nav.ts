@@ -12,6 +12,7 @@ import {
   Receipt,
   ScrollText,
   Settings,
+  ShieldCheck,
   Users,
   Wallet,
   Workflow,
@@ -23,6 +24,12 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   badge?: string;
+  /**
+   * Highlight only on an exact path match. Needed for items that are the parent
+   * of another nav entry (Approvals owns /approvals/rules) — without this both
+   * would light up on the child route.
+   */
+  exact?: boolean;
 }
 
 export interface NavSection {
@@ -63,9 +70,11 @@ export function adminNav(slug: string): NavSection[] {
     {
       label: "Overview",
       items: [
-        // Expenses & Approvals are surfaced within the Dashboard for the tenant
-        // admin (tenant-wide stats), so they're intentionally omitted from the nav.
         { label: "Dashboard", href: base, icon: LayoutDashboard },
+        // The admin is often also the approver on the record (they manage a few
+        // people directly), so the decision queue needs a permanent home in the
+        // nav — the dashboard only summarises it.
+        { label: "Approvals", href: `${base}/approvals`, icon: ShieldCheck, exact: true },
       ],
     },
     {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Receipt, ShieldCheck, Sparkles, TrendingUp, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -224,8 +225,10 @@ function WelcomeBanner({ slug, pending }: { slug: string; pending: number }) {
               : "No approvals pending — you're all caught up."}
           </p>
         </div>
-        <Button size="sm" variant="default" className="shrink-0">
-          Review approvals
+        <Button asChild size="sm" variant="default" className="shrink-0">
+          <Link href={`/t/${slug}/admin/approvals`}>
+            {pending > 0 ? `Review ${pending} pending` : "Review approvals"}
+          </Link>
         </Button>
       </div>
     </div>
