@@ -60,11 +60,43 @@ function emptyIntegrations(slug: string): TenantIntegrations {
   };
 }
 
+/** A fully-wired tenant, for offline UI work and screenshot capture. The mock
+ *  layer previously returned only `emptyIntegrations`, so the "Connected" state
+ *  of this screen could never be seen without a live backend. Hostnames use the
+ *  reserved example.com domain; no secret values are held here, only the
+ *  `*Set` booleans the real API returns. */
+function demoIntegrations(slug: string): TenantIntegrations {
+  return {
+    slug,
+    sap: {
+      enabled: true,
+      baseUrl: "https://s4hana.example.com/sap/opu/odata/sap/API_SUPPLIERINVOICE_PROCESS_SRV",
+      authType: "basic",
+      username: "EXPGENIE_SVC",
+      passwordSet: true,
+      companyCode: "1000",
+      glAccount: "0000400100",
+      costCenter: "CC-FIN-01",
+      taxCode: "V0",
+    },
+    hrms: {
+      enabled: true,
+      baseUrl: "https://hrms.example.com/api/v2",
+      authType: "apikey",
+      username: "expgenie-sync",
+      secretSet: true,
+      employeeEndpoint: "/employees?status=active",
+      autoSync: true,
+    },
+    updatedAt: "2026-08-27T09:20:00.000Z",
+  };
+}
+
 /** GET /integrations/:slug */
 export async function getIntegrations(slug: string): Promise<TenantIntegrations> {
   if (USE_MOCKS) {
     await sleep(200);
-    return emptyIntegrations(slug);
+    return demoIntegrations(slug);
   }
   const { data } = await apiClient.get<TenantIntegrations>(
     `/integrations/${encodeURIComponent(slug)}`,
@@ -79,7 +111,7 @@ export async function updateIntegrations(
 ): Promise<TenantIntegrations> {
   if (USE_MOCKS) {
     await sleep(300);
-    return emptyIntegrations(slug);
+    return demoIntegrations(slug);
   }
   const { data } = await apiClient.put<TenantIntegrations>(
     `/integrations/${encodeURIComponent(slug)}`,
@@ -96,7 +128,7 @@ export async function testConnection(
 ): Promise<TestResult> {
   if (USE_MOCKS) {
     await sleep(400);
-    return { ok: false, message: "Mock mode — connection test disabled." };
+    return { ok: true, status: 200, latencyMs: 214, message: "Connection OK — 200 in 214 ms" };
   }
   const { data } = await apiClient.post<TestResult>(
     `/integrations/${encodeURIComponent(slug)}/${type}/test`,
