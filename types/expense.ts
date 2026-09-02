@@ -36,6 +36,16 @@ export interface ExpenseInvoice {
   /** Attachments as written by the mobile app / chatbot: [{ url, filename }]. */
   File?: { url?: string; blob_url?: string; filename?: string }[];
   Description?: string;
+  /** What the bill was for, in the submitter's words. Every path writes it. */
+  Narration?: string;
+  /** Bill number — the chatbot writes it here, not as InvoiceNumber. */
+  BillNumber?: string;
+  ItemData?: {
+    DocumentNo?: string;
+    GLCode?: string;
+    CostCenter?: string;
+    ClaimAmount?: number;
+  };
 }
 
 /**

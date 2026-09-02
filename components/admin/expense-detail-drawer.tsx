@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, FileText, Loader2, Paperclip, CheckCircle2, Clock, XCircle, Circle, ExternalLink, PlugZap } from "lucide-react";
+import { Check, X, FileText, Loader2, Paperclip, CheckCircle2, Clock, XCircle, Circle, ExternalLink, PlugZap, MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { invoiceFiles, type AttachmentRef } from "@/lib/expense";
+import { invoiceFiles, invoiceNarration, expenseNarration, type AttachmentRef } from "@/lib/expense";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TieredAmount } from "@/components/admin/amount-tier";
@@ -203,6 +203,9 @@ export function ExpenseDetailDrawer({
       att,
     })),
   );
+  // One purpose for the whole expense when every line agrees; otherwise each
+  // line item shows its own narration below.
+  const narration = expenseNarration(expense);
   const canDecide = !!onApprove && !!onReject && expense.ApprovalStatus === "Pending";
   const canPay =
     manualPaymentEnabled && !sapConnected && canRecordPayment(user, expense) && !isPaid(expense);
@@ -232,6 +235,15 @@ export function ExpenseDetailDrawer({
           <Row label="Submitted" value={formatDate(expense.SubmissionDate, "MMM d, yyyy")} hint={formatRelative(expense.SubmissionDate)} />
           <Row label="Approver" value={expense.ApproverEmail} className="col-span-2" />
         </div>
+
+        {narration ? (
+          <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-3">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <MessageSquareText className="h-3 w-3" /> Purpose
+            </p>
+            <p className="mt-1 whitespace-pre-line text-xs leading-relaxed">{narration}</p>
+          </div>
+        ) : null}
 
         <StatusTimeline expense={expense} />
 
@@ -268,13 +280,22 @@ export function ExpenseDetailDrawer({
             <ul className="mt-2 space-y-2">
               {items.map((inv) => {
                 const first = invoiceFiles(inv)[0];
+                // Already shown once as Purpose when every line agrees.
+                const lineNarration = narration ? "" : invoiceNarration(inv);
+                // The chatbot writes BillNumber / ExpenseType where the mobile
+                // app writes InvoiceNumber / Category.
+                const billNo = inv.InvoiceNumber || inv.BillNumber || inv.ItemData?.DocumentNo || "—";
+                const category = inv.Category || inv.ExpenseType || inv.SubCategory || "Uncategorized";
                 return (
-                  <li key={inv.EMSUniqueId} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 p-3 text-xs">
+                  <li key={inv.EMSUniqueId} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 bg-background/40 p-3 text-xs">
                     <div className="min-w-0">
                       <p className="truncate font-medium">{inv.VendorName ?? "Vendor"}</p>
                       <p className="truncate text-[11px] text-muted-foreground">
-                        {inv.InvoiceNumber ?? "—"} · {inv.Category ?? "Uncategorized"}
+                        {billNo} · {category}
                       </p>
+                      {lineNarration ? (
+                        <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{lineNarration}</p>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {first ? (
