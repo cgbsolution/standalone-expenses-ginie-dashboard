@@ -2,15 +2,17 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Eye } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { EmployeeProfileSheet } from "@/components/admin/employee-profile-sheet";
+import { EmployeeSpendSheet } from "@/components/admin/employee-spend-sheet";
 import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
 import { BulkImportSheet } from "@/components/admin/bulk-import-sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useUsers } from "@/lib/hooks/use-users";
 import type { User } from "@/types/auth";
 
@@ -23,6 +25,8 @@ export default function TeamPage({ params }: PageProps) {
   const { data: users, isLoading, error, refetch } = useUsers({ tenant: slug });
   const [selected, setSelected] = useState<User | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [spendFor, setSpendFor] = useState<User | null>(null);
+  const [spendOpen, setSpendOpen] = useState(false);
 
   // Keep the sheet in sync with the latest user data, so optimistic updates from
   // useUpdateUser show in the open sheet immediately.
@@ -101,8 +105,24 @@ export default function TeamPage({ params }: PageProps) {
         id: "open",
         header: "",
         enableSorting: false,
-        cell: () => (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+        cell: ({ row }) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`View ${row.original.displayName}'s spend`}
+              title="View spend"
+              // The row itself opens the profile sheet — keep the click here.
+              onClick={(ev) => {
+                ev.stopPropagation();
+                setSpendFor(row.original);
+                setSpendOpen(true);
+              }}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+          </div>
         ),
       },
     ],
@@ -138,6 +158,7 @@ export default function TeamPage({ params }: PageProps) {
       />
 
       <EmployeeProfileSheet user={selectedLive} open={sheetOpen} onOpenChange={setSheetOpen} />
+      <EmployeeSpendSheet user={spendFor} open={spendOpen} onOpenChange={setSpendOpen} />
     </>
   );
 }

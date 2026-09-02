@@ -34,6 +34,14 @@
     --destructive: 350 89% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    /* Chart marks. Deliberately darker than the --success/--warning badge
+       tokens, which wash out to ~2:1 as large fills on a white card. These
+       steps are checked for colour-blind separation and >=3:1 contrast against
+       the card surface — re-run the palette checks before changing them. */
+    --chart-approved: 158 64% 38%;
+    --chart-pending: 38 92% 42%;
+    --chart-rejected: 350 80% 55%;
+
     --border: 240 6% 90%;
     --input: 240 6% 90%;
     --ring: 244 75% 59%;
@@ -71,6 +79,12 @@
 
     --destructive: 350 89% 65%;
     --destructive-foreground: 240 10% 4%;
+
+    /* Dark steps are picked against the dark card surface, not flipped from
+       the light ones — a straight flip lands too bright and glares. */
+    --chart-approved: 158 64% 41%;
+    --chart-pending: 38 92% 41%;
+    --chart-rejected: 350 80% 64%;
 
     --border: 240 12% 16%;
     --input: 240 12% 16%;
