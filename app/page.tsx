@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/constants";
-import { decodeSession } from "@/lib/session";
+import { readSession } from "@/lib/session";
 import { homeRouteForRole } from "@/lib/nav";
 
-export default function RootPage() {
+export default async function RootPage() {
   const token = cookies().get(SESSION_COOKIE)?.value;
-  const session = token ? decodeSession(token) : null;
+  const session = await readSession(token);
   if (!session) redirect("/login");
   redirect(homeRouteForRole(session.role, session.tenantSlug));
 }

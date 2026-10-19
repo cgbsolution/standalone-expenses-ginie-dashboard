@@ -7,10 +7,8 @@ import type { LoginRequest, LoginResponse, Role, Session, User } from "@/types/a
 const VALID_ROLES: ReadonlySet<Role> = new Set(["super_admin", "admin", "employee"]);
 
 /**
- * Backend currently returns `{ success, user }` with NO token. Until JWT issuance
- * is added server-side, we mint a base64-encoded payload here and treat it as the
- * session token. The middleware in `middleware.ts` decodes it; replace both sides
- * with real JWT verification once the backend is updated.
+ * Mock mode only (no backend): an unsigned stand-in token so the middleware can
+ * route by role. Real sign-ins use the token the backend signs.
  */
 export function synthesizeSession(user: User): Session {
   const expiresAt = Date.now() + SESSION_TTL_MS;
@@ -73,35 +71,55 @@ async function mockLogin(req: LoginRequest): Promise<LoginResponse> {
 }
 
 export async function login(req: LoginRequest): Promise<Session> {
-  let response: LoginResponse;
   if (USE_MOCKS) {
-    response = await mockLogin(req);
-  } else {
-    let data: { success: boolean; user: User };
-    try {
-      ({ data } = await apiClient.post<{ success: boolean; user: User }>(
-        "/auth/login",
-        req,
-      ));
-    } catch (err) {
-      throw new Error(apiErrorMessage(err, "Could not sign in"));
-    }
-    if (!data?.user) throw new Error("Backend did not return a user");
-    const role = (data.user.role ?? "").toLowerCase() as Role;
-    if (!VALID_ROLES.has(role)) {
-      throw new Error(`Unknown role "${data.user.role ?? "<missing>"}" from backend`);
-    }
-    // Trust the backend for role + tenantSlug; super_admin has no tenant by design.
-    response = {
-      success: true,
-      user: {
-        ...data.user,
-        role,
-        tenantSlug: role === "super_admin" ? undefined : data.user.tenantSlug ?? DEFAULT_TENANT_SLUG,
-      },
-    };
+    const session = synthesizeSession((await mockLogin(req)).user);
+    writeSessionCookie(session.token, session.expiresAt);
+    return session;
   }
-  const session = synthesizeSession(response.user);
+
+  let data: LoginResponse;
+  try {
+    ({ data } = await apiClient.post<LoginResponse>("/auth/login", req));
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, "Could not sign in"));
+  }
+  return startSession(data);
+}
+
+/**
+ * Sign in with a one-time link from AskMira (the HRMS the company runs). The
+ * token comes from the URL fragment of /sso/askmira; the backend checks it.
+ */
+export async function loginWithAskmira(token: string): Promise<Session> {
+  let data: LoginResponse;
+  try {
+    ({ data } = await apiClient.post<LoginResponse>("/auth/askmira/exchange", { token }));
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, "Could not sign you in from AskMira"));
+  }
+  return startSession(data);
+}
+
+/** A backend sign-in answer → the dashboard session, with its cookie written. */
+function startSession(data: LoginResponse): Session {
+  if (!data?.user) throw new Error("Backend did not return a user");
+  if (!data.token || !data.expiresAt) {
+    throw new Error("The server did not issue a session. Update the ExpGenie backend.");
+  }
+  const role = (data.user.role ?? "").toLowerCase() as Role;
+  if (!VALID_ROLES.has(role)) {
+    throw new Error(`Unknown role "${data.user.role ?? "<missing>"}" from backend`);
+  }
+  // The backend's signed token is the session; role + tenantSlug come from it too.
+  const session: Session = {
+    user: {
+      ...data.user,
+      role,
+      tenantSlug: role === "super_admin" ? undefined : data.user.tenantSlug ?? DEFAULT_TENANT_SLUG,
+    },
+    token: data.token,
+    expiresAt: data.expiresAt,
+  };
   writeSessionCookie(session.token, session.expiresAt);
   return session;
 }

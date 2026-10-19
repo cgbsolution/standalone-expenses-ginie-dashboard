@@ -46,4 +46,8 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: true;
   user: User;
+  /** Signed session token; sent as `Authorization: Bearer`. */
+  token?: string;
+  /** Token expiry, epoch milliseconds. */
+  expiresAt?: number;
 }

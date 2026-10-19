@@ -28,7 +28,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (r) => r,
   (error: AxiosError<{ error?: string }>) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
+    // A 401 from a sign-in call is a wrong password or a dead link, not an
+    // expired session: let the page say so instead of bouncing to /login.
+    const signingIn = /\/auth\/(login|askmira\/exchange)$/.test(error.config?.url ?? "");
+    if (error.response?.status === 401 && !signingIn && typeof window !== "undefined") {
       window.localStorage.removeItem("expg.auth");
       document.cookie = "expg_session=; Path=/; Max-Age=0";
       if (window.location.pathname !== "/login") {

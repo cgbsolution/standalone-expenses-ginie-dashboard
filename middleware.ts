@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/constants";
-import { decodeSession } from "@/lib/session";
+import { readSession } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/unauthorized"];
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/unauthorized", "/sso"];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
@@ -17,7 +17,7 @@ export function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
-  const session = decodeSession(token);
+  const session = await readSession(token);
 
   if (!session) {
     const url = req.nextUrl.clone();
