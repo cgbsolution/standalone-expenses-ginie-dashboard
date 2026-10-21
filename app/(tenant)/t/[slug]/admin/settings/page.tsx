@@ -14,6 +14,7 @@ import { useConfig, useUpdateConfig } from "@/lib/hooks/use-settings";
 import type { WorkspaceConfig } from "@/lib/api/settings";
 import { apiErrorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+import { AskmiraConnectionCard } from "@/components/askmira/askmira-connection-card";
 
 interface PageProps {
   params: { slug: string };
@@ -115,6 +116,7 @@ export default function TenantSettingsPage({ params }: PageProps) {
             </Button>
           </CardFooter>
         </Card>
+        <AskmiraConnectionCard />
       </div>
     </>
   );

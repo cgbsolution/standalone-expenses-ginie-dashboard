@@ -40,7 +40,8 @@ function LoginForm() {
       toast.success(`Welcome back, ${session.user.givenName || session.user.displayName}`);
 
       const next = params.get("next");
-      if (next) {
+      // Only a page on this site: never send someone elsewhere after signing in.
+      if (next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")) {
         router.replace(next);
         return;
       }
