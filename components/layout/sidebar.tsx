@@ -32,7 +32,7 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-screen flex-shrink-0 self-start border-r border-border bg-card/30 backdrop-blur-xl transition-[width] duration-300 ease-out lg:flex lg:flex-col",
+        "askmira-rail sticky top-0 hidden h-screen flex-shrink-0 self-start border-r border-white/10 text-white transition-[width] duration-300 ease-out lg:flex lg:flex-col",
         collapsed ? "w-[72px]" : "w-[260px]",
         className,
       )}
@@ -60,9 +60,9 @@ export function Sidebar({ className }: SidebarProps) {
 
 function SidebarHeader({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className="flex h-16 items-center gap-3 border-b border-border/60 px-4">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 shadow-glow-sm">
-        <Sparkles className="h-4 w-4 text-primary-foreground" />
+    <div className="flex h-16 items-center gap-3 border-b border-white/10 px-4">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-marigold-500 shadow-sm">
+        <Sparkles className="h-4 w-4 text-[#100404]" />
       </div>
       <AnimatePresence initial={false}>
         {!collapsed && (
@@ -75,7 +75,7 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
             className="flex flex-col"
           >
             <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] uppercase tracking-wider text-white/60">
               Control Plane
             </span>
           </motion.div>
@@ -97,7 +97,7 @@ function SidebarRoleBadge({
   if (collapsed) return <div className="px-4 pt-3" />;
   return (
     <div className="px-4 pt-3">
-      <Badge variant="default" className="border-primary/30 bg-primary/10 text-[10px] uppercase tracking-wider">
+      <Badge variant="default" className="border-white/15 bg-white/10 text-[10px] uppercase tracking-wider text-white">
         {label}
       </Badge>
     </div>
@@ -119,7 +119,7 @@ function SidebarNav({
         {sections.map((section) => (
           <div key={section.label} className="space-y-1">
             {!collapsed ? (
-              <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-white/50">
                 {section.label}
               </p>
             ) : null}
@@ -132,17 +132,17 @@ function SidebarNav({
                   className={cn(
                     "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-gradient-to-r from-primary/20 via-primary/10 to-transparent text-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                      ? "bg-marigold-500 text-[#100404] shadow-sm"
+                      : "text-white/80 hover:bg-white/10 hover:text-white",
                   )}
                 >
                   {isActive ? (
-                    <span className="absolute left-0 top-1/2 h-5 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-primary to-violet-500 w-[3px]" />
+                    <span className="absolute -left-3 top-1/2 h-5 -translate-y-1/2 rounded-r-full bg-marigold-400 w-[3px]" />
                   ) : null}
                   <Icon
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      isActive ? "text-primary" : "text-muted-foreground",
+                      isActive ? "text-[#100404]" : "text-white/70 group-hover:text-white",
                     )}
                   />
                   <AnimatePresence initial={false}>
@@ -206,10 +206,10 @@ function SidebarFooter({
   avatarUrl: string | null;
 }) {
   return (
-    <div className="border-t border-border/60 p-3">
+    <div className="border-t border-white/10 p-3">
       <div
         className={cn(
-          "flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-secondary",
+          "flex items-center gap-3 rounded-lg bg-white/10 p-2 transition-colors hover:bg-white/15",
           collapsed && "justify-center",
         )}
       >
@@ -218,11 +218,11 @@ function SidebarFooter({
           <>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{userName}</p>
-              <p className="truncate text-[10px] text-muted-foreground">{userEmail}</p>
+              <p className="truncate text-[10px] text-white/60">{userEmail}</p>
             </div>
             <button
               type="button"
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+              className="rounded-md p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               aria-label="Settings"
             >
               <Settings className="h-3.5 w-3.5" />

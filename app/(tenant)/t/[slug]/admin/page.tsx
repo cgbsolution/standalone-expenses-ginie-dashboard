@@ -25,7 +25,7 @@ interface PageProps {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const PALETTE = ["#6366F1", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#64748B"];
+const PALETTE = ["#7D0712", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#A3585B", "#EC4899", "#64748B"];
 
 // Daily submissions (spend) + approvals (reimbursed) across the selected range,
 // capped at ~180 daily points for readability.
@@ -72,7 +72,7 @@ function buildCategories(expenses: MasterExpense[], defined: { id: string; name:
   let i = 0;
   for (const [name, amount] of spent) {
     if (!defined.some((c) => c.name === name)) {
-      out.push({ id: name, name, color: PALETTE[(defined.length + i++) % PALETTE.length] ?? "#6366F1", icon: "folder", monthlyBudget: 0, spent: amount });
+      out.push({ id: name, name, color: PALETTE[(defined.length + i++) % PALETTE.length] ?? "#7D0712", icon: "folder", monthlyBudget: 0, spent: amount });
     }
   }
   return out.sort((a, b) => b.spent - a.spent);

@@ -29,12 +29,12 @@ export function TenantGrowthChart({ data }: Props) {
           <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <defs>
               <linearGradient id="tenantsGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6366F1" stopOpacity={0.45} />
-                <stop offset="100%" stopColor="#6366F1" stopOpacity={0} />
+                <stop offset="0%" stopColor="#7D0712" stopOpacity={0.45} />
+                <stop offset="100%" stopColor="#7D0712" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="activeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#06B6D4" stopOpacity={0} />
+                <stop offset="0%" stopColor="#F8A01A" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#F8A01A" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
@@ -65,7 +65,7 @@ export function TenantGrowthChart({ data }: Props) {
             <Area
               type="monotone"
               dataKey="tenants"
-              stroke="#6366F1"
+              stroke="#7D0712"
               strokeWidth={2}
               fill="url(#tenantsGrad)"
               isAnimationActive
@@ -74,7 +74,7 @@ export function TenantGrowthChart({ data }: Props) {
             <Area
               type="monotone"
               dataKey="active"
-              stroke="#06B6D4"
+              stroke="#F8A01A"
               strokeWidth={2}
               fill="url(#activeGrad)"
               isAnimationActive

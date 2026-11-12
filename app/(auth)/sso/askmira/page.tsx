@@ -10,7 +10,7 @@ import { loginWithAskmira } from "@/lib/api/auth";
 import { homeRouteForRole } from "@/lib/nav";
 
 /**
- * Landing page for "Open Expenses" in AskMira. AskMira puts a one-time,
+ * Landing page for "Open Expenses" in AskMiraa. AskMiraa puts a one-time,
  * one-minute sign-in token in the URL fragment — never sent to a server or in a
  * Referer — which is traded for a normal session here, then wiped from the URL.
  */
@@ -26,7 +26,7 @@ export default function AskmiraSsoPage() {
     const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
     window.history.replaceState(null, "", window.location.pathname);
     if (!token) {
-      setError("This link has no sign-in token. Open Expenses again from AskMira.");
+      setError("This link has no sign-in token. Open Expenses again from AskMiraa.");
       return;
     }
     loginWithAskmira(token)
@@ -41,7 +41,7 @@ export default function AskmiraSsoPage() {
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
       {error ? (
         <>
-          <h1 className="text-xl font-semibold">Couldn&apos;t sign you in from AskMira</h1>
+          <h1 className="text-xl font-semibold">Couldn&apos;t sign you in from AskMiraa</h1>
           <p className="max-w-md text-sm text-muted-foreground">{error}</p>
           <Button variant="outline" asChild>
             <Link href="/login">Sign in with a password instead</Link>
@@ -49,7 +49,7 @@ export default function AskmiraSsoPage() {
         </>
       ) : (
         <p className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin" /> Signing you in from AskMira…
+          <Loader2 className="size-5 animate-spin" /> Signing you in from AskMiraa…
         </p>
       )}
     </div>

@@ -4,91 +4,91 @@
 
 @layer base {
   :root {
-    --background: 240 25% 98%;
-    --foreground: 240 10% 8%;
+    --background: 24 83% 98%;
+    --foreground: 6 24% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 8%;
+    --card-foreground: 6 24% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 8%;
+    --popover-foreground: 6 24% 8%;
 
-    --primary: 244 75% 59%;
+    --primary: 354 89% 26%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 8%;
+    --secondary: 25 59% 94%;
+    --secondary-foreground: 6 24% 8%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 25 59% 94%;
+    --muted-foreground: 20 8% 44%;
 
-    --accent: 189 94% 43%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 36 94% 54%;
+    --accent-foreground: 0 60% 4%;
 
-    --success: 158 64% 42%;
+    --success: 154 46% 34%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 31 90% 38%;
     --warning-foreground: 0 0% 100%;
 
-    --destructive: 350 89% 60%;
+    --destructive: 4 76% 40%;
     --destructive-foreground: 0 0% 100%;
 
     /* Chart marks. Deliberately darker than the --success/--warning badge
        tokens, which wash out to ~2:1 as large fills on a white card. These
        steps are checked for colour-blind separation and >=3:1 contrast against
        the card surface — re-run the palette checks before changing them. */
-    --chart-approved: 158 64% 38%;
-    --chart-pending: 38 92% 42%;
-    --chart-rejected: 350 80% 55%;
+    --chart-approved: 154 46% 34%;
+    --chart-pending: 34 91% 46%;
+    --chart-rejected: 4 76% 40%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 244 75% 59%;
+    --border: 25 44% 89%;
+    --input: 25 44% 89%;
+    --ring: 358 30% 49%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 240 22% 5%;
-    --foreground: 240 10% 96%;
+    --background: 8 29% 5%;
+    --foreground: 15 14% 95%;
 
-    --card: 240 18% 8%;
-    --card-foreground: 240 10% 96%;
+    --card: 6 20% 10%;
+    --card-foreground: 15 14% 95%;
 
-    --popover: 240 22% 6%;
-    --popover-foreground: 240 10% 96%;
+    --popover: 6 20% 10%;
+    --popover-foreground: 15 14% 95%;
 
-    --primary: 244 80% 67%;
-    --primary-foreground: 240 10% 4%;
+    --primary: 355 61% 38%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 12% 12%;
-    --secondary-foreground: 240 10% 96%;
+    --secondary: 11 16% 13%;
+    --secondary-foreground: 15 14% 95%;
 
-    --muted: 240 12% 12%;
-    --muted-foreground: 240 5% 62%;
+    --muted: 11 16% 13%;
+    --muted-foreground: 15 8% 63%;
 
-    --accent: 189 94% 55%;
-    --accent-foreground: 240 10% 4%;
+    --accent: 38 95% 60%;
+    --accent-foreground: 0 60% 4%;
 
-    --success: 158 64% 52%;
+    --success: 152 40% 54%;
     --success-foreground: 240 10% 4%;
 
-    --warning: 38 92% 60%;
+    --warning: 39 96% 67%;
     --warning-foreground: 240 10% 4%;
 
-    --destructive: 350 89% 65%;
+    --destructive: 4 83% 65%;
     --destructive-foreground: 240 10% 4%;
 
     /* Dark steps are picked against the dark card surface, not flipped from
        the light ones — a straight flip lands too bright and glares. */
-    --chart-approved: 158 64% 41%;
-    --chart-pending: 38 92% 41%;
-    --chart-rejected: 350 80% 64%;
+    --chart-approved: 152 40% 54%;
+    --chart-pending: 39 96% 67%;
+    --chart-rejected: 4 83% 65%;
 
-    --border: 240 12% 16%;
-    --input: 240 12% 16%;
-    --ring: 244 80% 67%;
+    --border: 14 13% 19%;
+    --input: 14 13% 19%;
+    --ring: 4 32% 66%;
   }
 }
 
@@ -102,17 +102,11 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(
-      ellipse 80% 50% at 50% -20%,
-      hsl(var(--primary) / 0.12),
-      transparent
-    );
+    background-image: none;
   }
   .dark body {
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.18), transparent),
-      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(139, 92, 246, 0.12), transparent),
-      radial-gradient(ellipse 50% 40% at 10% 80%, rgba(6, 182, 212, 0.06), transparent);
+      none;
   }
   ::selection {
     @apply bg-primary/30 text-foreground;
@@ -130,7 +124,7 @@
     @apply border border-slate-200/60 bg-white/70 backdrop-blur-xl;
   }
   .gradient-text {
-    @apply bg-gradient-to-br from-primary to-violet-500 bg-clip-text text-transparent;
+    @apply text-primary;
   }
   .tabular {
     font-variant-numeric: tabular-nums;
@@ -160,4 +154,14 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-muted-foreground/40;
+}
+
+/* AskMiraa chrome: the nav rail is the AskMiraa maroon, top to bottom, with
+   the Marigold pill on the active item. Page titles use Fraunces. */
+.askmira-rail {
+  background-image: linear-gradient(180deg, #6b0a13 0%, #5c0a11 45%, #34040a 100%);
+}
+main h1 {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  letter-spacing: -0.01em;
 }

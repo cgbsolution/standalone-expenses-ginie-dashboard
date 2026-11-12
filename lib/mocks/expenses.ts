@@ -1,9 +1,9 @@
 import type { Category, ExpenseCounts, MasterExpense } from "@/types/expense";
 
 export const MOCK_CATEGORIES: Category[] = [
-  { id: "c_travel", name: "Travel", color: "#6366F1", icon: "Plane", monthlyBudget: 40_000, spent: 28_410 },
-  { id: "c_meals", name: "Meals & Entertainment", color: "#06B6D4", icon: "Utensils", monthlyBudget: 12_000, spent: 9_820 },
-  { id: "c_software", name: "Software & SaaS", color: "#8B5CF6", icon: "MonitorPlay", monthlyBudget: 25_000, spent: 21_300 },
+  { id: "c_travel", name: "Travel", color: "#7D0712", icon: "Plane", monthlyBudget: 40_000, spent: 28_410 },
+  { id: "c_meals", name: "Meals & Entertainment", color: "#F8A01A", icon: "Utensils", monthlyBudget: 12_000, spent: 9_820 },
+  { id: "c_software", name: "Software & SaaS", color: "#A3585B", icon: "MonitorPlay", monthlyBudget: 25_000, spent: 21_300 },
   { id: "c_office", name: "Office Supplies", color: "#10B981", icon: "Briefcase", monthlyBudget: 6_000, spent: 2_180 },
   { id: "c_marketing", name: "Marketing", color: "#F59E0B", icon: "Megaphone", monthlyBudget: 18_000, spent: 14_900 },
   { id: "c_other", name: "Other", color: "#F43F5E", icon: "MoreHorizontal", monthlyBudget: 5_000, spent: 1_240 },

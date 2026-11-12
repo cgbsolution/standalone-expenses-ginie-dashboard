@@ -87,7 +87,7 @@ export async function login(req: LoginRequest): Promise<Session> {
 }
 
 /**
- * Sign in with a one-time link from AskMira (the HRMS the company runs). The
+ * Sign in with a one-time link from AskMiraa (the HRMS the company runs). The
  * token comes from the URL fragment of /sso/askmira; the backend checks it.
  */
 export async function loginWithAskmira(token: string): Promise<Session> {
@@ -95,7 +95,7 @@ export async function loginWithAskmira(token: string): Promise<Session> {
   try {
     ({ data } = await apiClient.post<LoginResponse>("/auth/askmira/exchange", { token }));
   } catch (err) {
-    throw new Error(apiErrorMessage(err, "Could not sign you in from AskMira"));
+    throw new Error(apiErrorMessage(err, "Could not sign you in from AskMiraa"));
   }
   return startSession(data);
 }

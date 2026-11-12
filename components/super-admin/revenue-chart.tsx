@@ -19,9 +19,9 @@ interface Props {
 
 const planColors: Record<"starter" | "growth" | "scale" | "enterprise", string> = {
   starter: "#94A3B8",
-  growth: "#06B6D4",
-  scale: "#6366F1",
-  enterprise: "#8B5CF6",
+  growth: "#F8A01A",
+  scale: "#7D0712",
+  enterprise: "#A3585B",
 };
 
 export function RevenueChart({ data }: Props) {

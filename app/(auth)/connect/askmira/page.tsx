@@ -35,9 +35,9 @@ function hostOf(url: string): string {
 }
 
 /**
- * /connect/askmira — AskMira asks to connect one of its workspaces to the
+ * /connect/askmira — AskMiraa asks to connect one of its workspaces to the
  * signed-in admin's workspace here. Allow makes a one-time code, bound to this
- * workspace, that only the AskMira server which asked can use.
+ * workspace, that only the AskMiraa server which asked can use.
  */
 export default function ConnectAskmiraPage() {
   const session = useAuthStore((s) => s.session);
@@ -78,34 +78,34 @@ export default function ConnectAskmiraPage() {
     <div className="mx-auto flex w-full max-w-md flex-col gap-5">
       <div className="flex items-center gap-3">
         <ShieldCheck className="h-7 w-7 text-primary" />
-        <h1 className="text-2xl font-semibold">Connect AskMira</h1>
+        <h1 className="text-2xl font-semibold">Connect AskMiraa</h1>
       </div>
 
       {!request ? (
         <p className="text-sm text-muted-foreground">
-          This link is incomplete. Start again from AskMira: Settings → Connectors → ExpenseGenie → Connect.
+          This link is incomplete. Start again from AskMiraa: Settings → Connectors → ExpenseGenie → Connect.
         </p>
       ) : !hydrated ? (
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       ) : !isAdmin ? (
         <p className="text-sm text-muted-foreground">
-          Only an admin of a workspace here can connect it to AskMira. Sign in with an admin account of your workspace,
-          or ask one of them to press Connect in AskMira.
+          Only an admin of a workspace here can connect it to AskMiraa. Sign in with an admin account of your workspace,
+          or ask one of them to press Connect in AskMiraa.
         </p>
       ) : (
         <>
           <p className="text-sm">
-            The AskMira workspace <span className="font-semibold">“{request.tenant_name}”</span> at{" "}
+            The AskMiraa workspace <span className="font-semibold">“{request.tenant_name}”</span> at{" "}
             <span className="font-mono">{hostOf(request.redirect_uri)}</span> asks to connect to your workspace{" "}
             <span className="font-semibold">“{mine?.tenant ?? user?.tenantSlug}”</span>.
           </p>
           <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Its people can open ExpenseGenie from AskMira without a second password.</li>
-            <li>It keeps your people here in step with AskMira (HR as admins, everyone else as employees).</li>
-            <li>Its people can see their own claims, approvals and totals in AskMira, as their role here allows.</li>
+            <li>Its people can open ExpenseGenie from AskMiraa without a second password.</li>
+            <li>It keeps your people here in step with AskMiraa (HR as admins, everyone else as employees).</li>
+            <li>Its people can see their own claims, approvals and totals in AskMiraa, as their role here allows.</li>
           </ul>
           <p className="text-xs text-muted-foreground">
-            It reaches your workspace only. You can disconnect it any time under Settings → AskMira connection.
+            It reaches your workspace only. You can disconnect it any time under Settings → AskMiraa connection.
           </p>
           {mine?.connected && mine.askmira_workspace !== request.tenant_name ? (
             <p className="text-sm text-amber-600">

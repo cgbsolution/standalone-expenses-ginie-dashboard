@@ -156,8 +156,8 @@ function SpendChart({
             <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id="empGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366F1" stopOpacity={0.45} />
-                  <stop offset="100%" stopColor="#6366F1" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#7D0712" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="#7D0712" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
@@ -182,7 +182,7 @@ function SpendChart({
               <Area
                 type="monotone"
                 dataKey="spend"
-                stroke="#6366F1"
+                stroke="#7D0712"
                 strokeWidth={2}
                 fill="url(#empGrad)"
                 isAnimationActive

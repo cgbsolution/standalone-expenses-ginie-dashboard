@@ -19,9 +19,9 @@ interface KPICardProps {
 }
 
 const accentMap = {
-  primary: { ring: "from-primary/30 to-primary/0", stroke: "#6366F1" },
-  violet: { ring: "from-violet-500/30 to-violet-500/0", stroke: "#8B5CF6" },
-  cyan: { ring: "from-cyan-500/30 to-cyan-500/0", stroke: "#06B6D4" },
+  primary: { ring: "from-primary/30 to-primary/0", stroke: "#7D0712" },
+  violet: { ring: "from-violet-500/30 to-violet-500/0", stroke: "#A3585B" },
+  cyan: { ring: "from-cyan-500/30 to-cyan-500/0", stroke: "#F8A01A" },
   success: { ring: "from-emerald-500/30 to-emerald-500/0", stroke: "#10B981" },
   warning: { ring: "from-amber-500/30 to-amber-500/0", stroke: "#F59E0B" },
 };

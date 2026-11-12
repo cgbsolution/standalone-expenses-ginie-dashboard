@@ -24,7 +24,7 @@ interface PageProps {
   params: { slug: string };
 }
 
-const SWATCHES = ["#6366F1", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#64748B"];
+const SWATCHES = ["#7D0712", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#A3585B", "#EC4899", "#64748B"];
 
 export default function CategoriesPage({ params }: PageProps) {
   const { slug } = params;

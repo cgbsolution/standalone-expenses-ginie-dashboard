@@ -66,7 +66,7 @@ export function SpendingTrend({ data }: Props) {
               type="monotone"
               dataKey="spend"
               name="Spend"
-              stroke="#6366F1"
+              stroke="#7D0712"
               strokeWidth={2}
               dot={false}
               isAnimationActive
