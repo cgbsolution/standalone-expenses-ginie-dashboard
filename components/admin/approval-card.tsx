@@ -122,7 +122,7 @@ export function ApprovalCard({
         ) : (
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             {/* Renders nothing unless the tenant has manual payment enabled and
-                this viewer is the finance approver / a tenant admin. */}
+                this viewer is the submitter's finance person. */}
             <MarkPaidButton
               expense={expense}
               user={user}

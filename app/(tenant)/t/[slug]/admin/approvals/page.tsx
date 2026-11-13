@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, ArrowDownAZ, Check, RefreshCw, Search, X } from "lucide-react";
+import { AlertCircle, ArrowDownAZ, Check, FileSpreadsheet, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -31,6 +31,7 @@ import { useIntegrations } from "@/lib/hooks/use-integrations";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { exportExpensesToXlsx, exportFileName } from "@/lib/export-expenses-xlsx";
 import type { ApprovalStatus, MasterExpense } from "@/types/expense";
 
 type StatusTab = "Pending" | "Approved" | "Rejected" | "All";
@@ -54,6 +55,7 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
   const [sort, setSort] = useState<SortKey>("oldest");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const counts = useMemo(() => countByStatus(expenses ?? []), [expenses]);
   const visible = useMemo(
@@ -124,6 +126,33 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
     else if (ok === 0) toast.error(`Could not update any expenses`);
     else toast.warning(`${ok} succeeded, ${failed} failed`);
     setSelected(new Set());
+  }
+
+  // Excel of the selected expenses: every bill line, receipt images embedded,
+  // and a signed link to every receipt (images and PDFs).
+  async function downloadExcel() {
+    if (selectedExpenses.length === 0 || exporting) return;
+    setExporting(true);
+    const toastId = toast.loading("Preparing Excel…");
+    try {
+      const { receipts, failed } = await exportExpensesToXlsx(selectedExpenses, {
+        fileName: exportFileName(params.slug),
+        exportedBy: userEmail,
+        onProgress: ({ done, total }) => {
+          if (total > 0) toast.loading(`Fetching receipts ${done}/${total}…`, { id: toastId });
+        },
+      });
+      toast.dismiss(toastId);
+      const n = selectedExpenses.length;
+      const base = `Downloaded ${n} ${n === 1 ? "expense" : "expenses"} with ${receipts} ${receipts === 1 ? "receipt" : "receipts"}`;
+      if (failed > 0) toast.warning(`${base} — ${failed} could not be previewed; their links are in the file`);
+      else toast.success(base);
+    } catch (err) {
+      toast.dismiss(toastId);
+      toast.error(`Could not build the Excel: ${(err as Error).message}`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   const activeExpense = drawerId ? (expenses ?? []).find((e) => e.id === drawerId) ?? null : null;
@@ -207,6 +236,14 @@ export default function ApprovalsPage({ params }: { params: { slug: string } }) 
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={downloadExcel} disabled={exporting}>
+              {exporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+              )}
+              Download Excel
+            </Button>
             <Button
               size="sm"
               variant="outline"

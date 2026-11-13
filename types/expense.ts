@@ -69,6 +69,8 @@ export interface MasterExpense {
   /** Always sent by the backend; defaults to "Unpaid". */
   PaymentStatus?: PaymentStatus;
   PaymentInfo?: PaymentInfo | null;
+  /** The submitter's finance person — the only one who may record payment. "" when none is set. */
+  PaymentOwnerEmail?: string;
   RejectionInfo?: {
     Reason: string;
     Comments?: string;

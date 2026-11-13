@@ -21,16 +21,17 @@ import type { User } from "@/types/auth";
 import type { MasterExpense } from "@/types/expense";
 
 /**
- * Who may record a manual payment: the finance approver left on the expense
- * after final approval, plus tenant admins covering for them. Mirrors
- * `canMarkPaid` in expenses-backend/routes/masterExpense.js — the server is the
- * real gate, this only decides whether to render the button.
+ * Who may record a manual payment: only the submitter's finance person
+ * (`PaymentOwnerEmail`). Managers only approve or reject, and tenant admins
+ * don't cover for finance. Mirrors `canMarkPaid` in
+ * expenses-backend/routes/masterExpense.js — the server is the real gate, this
+ * only decides whether to render the button.
  */
 export function canRecordPayment(user: User | undefined, expense: MasterExpense): boolean {
   if (!user?.email) return false;
   if (expense.ApprovalStatus !== "Approved") return false;
-  if (user.role === "admin" || user.role === "super_admin") return true;
-  return user.email.toLowerCase() === (expense.ApproverEmail || "").toLowerCase();
+  const owner = (expense.PaymentOwnerEmail || "").toLowerCase();
+  return Boolean(owner) && user.email.toLowerCase() === owner;
 }
 
 export function isPaid(expense: MasterExpense): boolean {
