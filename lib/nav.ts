@@ -8,6 +8,7 @@ import {
   FileText,
   Folder,
   LayoutDashboard,
+  MessageSquarePlus,
   Plug,
   Receipt,
   ScrollText,
@@ -75,6 +76,7 @@ export function adminNav(slug: string): NavSection[] {
         // people directly), so the decision queue needs a permanent home in the
         // nav — the dashboard only summarises it.
         { label: "Approvals", href: `${base}/approvals`, icon: ShieldCheck, exact: true },
+        { label: "Submit expense", href: `${base}/submit`, icon: MessageSquarePlus },
       ],
     },
     {
@@ -110,6 +112,7 @@ export function employeeNav(slug: string): NavSection[] {
       label: "My workspace",
       items: [
         { label: "Dashboard", href: base, icon: LayoutDashboard },
+        { label: "Submit expense", href: `${base}/submit`, icon: MessageSquarePlus },
         { label: "My expenses", href: `${base}/expenses`, icon: Receipt },
         { label: "Reimbursements", href: `${base}/reimbursements`, icon: Wallet },
       ],

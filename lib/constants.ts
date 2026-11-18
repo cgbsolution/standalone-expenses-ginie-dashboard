@@ -12,6 +12,20 @@ export const API_BASE_URL =
 
 export const DEFAULT_TENANT_SLUG = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG ?? "xeltrion";
 
+/**
+ * The Genie chat page served by bot-backend-source (`GET /chat`). It is the
+ * same page the mobile app loads in its WebView, so submitting from the web
+ * goes through the exact same bot flow (OCR, policy checks, approval routing).
+ * Default matches the mobile app's CHAT_URL fallback.
+ */
+export const CHAT_URL =
+  process.env.NEXT_PUBLIC_CHAT_URL?.replace(/\/$/, "") ?? "https://chatbot-api.epfassist.com/chat";
+
+export function buildChatUrl(userId: string, displayName: string): string {
+  const qs = new URLSearchParams({ userid: userId, username: displayName });
+  return `${CHAT_URL}?${qs.toString()}`;
+}
+
 export const PLAN_LABELS = {
   starter: "Starter",
   growth: "Growth",

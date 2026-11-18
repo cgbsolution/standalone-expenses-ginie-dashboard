@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CheckCircle2, Clock, Receipt, Wallet } from "lucide-react";
+import { CheckCircle2, Clock, MessageSquarePlus, Receipt, Wallet } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -123,9 +123,15 @@ function WelcomeBanner({ firstName, tenantSlug }: { firstName: string; tenantSlu
           </p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight">Hi {firstName}, welcome back.</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Submit new expenses from the ExpGenie mobile app. Track and review everything here.
+            Submit expenses here or from the ExpGenie mobile app. Track and review everything in one place.
           </p>
         </div>
+        <Button asChild>
+          <Link href={`/t/${tenantSlug}/employee/submit`}>
+            <MessageSquarePlus className="h-4 w-4" />
+            Submit expense
+          </Link>
+        </Button>
       </div>
     </div>
   );
@@ -229,7 +235,7 @@ function RecentSubmissions({
           ))}
         </div>
       ) : top.length === 0 ? (
-        <EmptyState title="No expenses yet" description="Submit one from the mobile app to see it here." />
+        <EmptyState title="No expenses yet" description="Use Submit expense (or the mobile app) to add your first one." />
       ) : (
         <ul className="space-y-3">
           {top.map((e) => (

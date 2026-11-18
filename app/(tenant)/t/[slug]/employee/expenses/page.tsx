@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye } from "lucide-react";
+import { Eye, MessageSquarePlus } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
@@ -16,7 +17,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { formatDate, formatRelative } from "@/lib/format";
 import type { MasterExpense } from "@/types/expense";
 
-export default function MyExpensesPage() {
+export default function MyExpensesPage({ params }: { params: { slug: string } }) {
   const userEmail = useAuthStore((s) => s.session?.user.email ?? "");
   const { data: expenses, isLoading, error, refetch } = useMyExpenses(userEmail);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -86,6 +87,14 @@ export default function MyExpensesPage() {
       <PageHeader
         title="My expenses"
         description="Every expense you've submitted — track status, drill in, follow up"
+        actions={
+          <Button asChild size="sm">
+            <Link href={`/t/${params.slug}/employee/submit`}>
+              <MessageSquarePlus className="h-4 w-4" />
+              Submit expense
+            </Link>
+          </Button>
+        }
       />
 
       <DataTable<MasterExpense>
@@ -97,7 +106,7 @@ export default function MyExpensesPage() {
         onRowClick={(row) => setDetailId(row.id)}
         searchPlaceholder="Search title, expense ID, approver…"
         emptyTitle="No expenses yet"
-        emptyDescription="Submit your first expense from the ExpGenie mobile app to see it here."
+        emptyDescription="Use Submit expense (or the ExpGenie mobile app) to add your first one."
       />
 
       <ExpenseDetailDrawer
